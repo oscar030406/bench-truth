@@ -11,6 +11,7 @@ from __future__ import annotations
 
 import argparse
 import asyncio
+import dataclasses
 import json
 import time
 from dataclasses import dataclass
@@ -48,8 +49,11 @@ def _chunk(kind: str, text: str | None, usage: dict | None = None) -> bytes:
 
 
 class Server:
-    def __init__(self, scenario: Scenario):
+    def __init__(self, scenario: Scenario, word: str | None = None):
         self.scenario = scenario
+        # With a word, every chunk carries it, so a client that re-tokenizes the text
+        # counts one token per chunk. Without it, chunk i carries `t{i}`.
+        self.word = word
         self.records: list[dict] = []
 
     async def stream(self, request: web.Request) -> web.StreamResponse:
@@ -65,7 +69,7 @@ class Server:
         for i in range(n):
             target = arrived + s.ttft + i * s.itl
             await asyncio.sleep(max(0.0, target - time.perf_counter()))
-            await resp.write(_chunk(kind, f" t{i}"))
+            await resp.write(_chunk(kind, f" {self.word}" if self.word else f" t{i}"))
             sent.append(time.perf_counter() - arrived)
         # Like the OpenAI API, send the usage chunk only when the client asks for it.
         if (body.get("stream_options") or {}).get("include_usage"):
@@ -98,8 +102,17 @@ def main() -> None:
     p = argparse.ArgumentParser()
     p.add_argument("--scenario", choices=sorted(SCENARIOS), default="uniform")
     p.add_argument("--port", type=int, default=8100)
+    p.add_argument("--itl", type=float, help="seconds between tokens, overrides the scenario")
+    p.add_argument("--tokens", type=int, help="tokens per response, overrides the scenario")
+    p.add_argument("--word", help="send this word in every chunk instead of t{i}")
     args = p.parse_args()
-    web.run_app(Server(SCENARIOS[args.scenario]).app(), port=args.port, print=None)
+    scenario = SCENARIOS[args.scenario]
+    if args.itl is not None:
+        scenario = dataclasses.replace(scenario, itl=args.itl)
+    if args.tokens is not None:
+        scenario = dataclasses.replace(scenario, tokens=args.tokens)
+    server = Server(scenario, args.word)
+    web.run_app(server.app(), host="127.0.0.1", port=args.port, print=None)
 
 
 if __name__ == "__main__":
