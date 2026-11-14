@@ -7,6 +7,8 @@ set -euo pipefail
 cd "$(dirname "$0")"
 uv run --frozen ruff check .
 uv run --frozen ruff format --check .
+cargo fmt --check --manifest-path server-rs/Cargo.toml
+cargo clippy --release --quiet --manifest-path server-rs/Cargo.toml -- -D warnings
 cargo build --release --quiet --manifest-path server-rs/Cargo.toml
 target="${CARGO_TARGET_DIR:-server-rs/target}"
 BT_SERVER_BIN="$target/release/bench-truth-server" uv run --frozen pytest -q tests
