@@ -14,6 +14,7 @@ use axum::extract::State;
 use axum::http::{HeaderMap, Uri, header};
 use axum::response::{IntoResponse, Response};
 use axum::routing::{get, post};
+use axum::serve::ListenerExt;
 use axum::{Json, Router};
 use bytes::Bytes;
 use serde::Serialize;
@@ -144,8 +145,13 @@ async fn main() {
         .route("/v1/models", get(models))
         .route("/truth", get(truth))
         .with_state(state);
-    let listener = tokio::net::TcpListener::bind(("127.0.0.1", flag("--port", "8100").parse::<u16>().unwrap()))
-        .await
-        .unwrap();
+    let port = flag("--port", "8100").parse::<u16>().unwrap();
+    let listener = tokio::net::TcpListener::bind(("127.0.0.1", port)).await.unwrap().tap_io(|tcp| {
+        // Send every chunk at once, as inference servers do. Without this, Nagle's
+        // algorithm holds a chunk until the client acknowledges the previous one.
+        if let Err(err) = tcp.set_nodelay(true) {
+            eprintln!("set_nodelay failed: {err}");
+        }
+    });
     axum::serve(listener, app).await.unwrap();
 }
