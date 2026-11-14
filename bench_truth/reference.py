@@ -35,7 +35,15 @@ async def one(session: aiohttp.ClientSession, url: str, rid: str) -> dict:
     return {"id": rid, "sent": sent, "first": first}
 
 
-async def run(url: str, concurrency: int, requests: int, trust_env: bool = False) -> None:
+async def fresh(url: str, rid: str, trust_env: bool) -> dict:
+    """One request in its own session, as SGLang's bench_serving does."""
+    async with aiohttp.ClientSession(trust_env=trust_env) as session:
+        return await one(session, url, rid)
+
+
+async def run(
+    url: str, concurrency: int, requests: int, trust_env: bool = False, per_request: bool = False
+) -> None:
     limit = asyncio.Semaphore(concurrency)
     async with aiohttp.ClientSession(
         connector=aiohttp.TCPConnector(limit=0), trust_env=trust_env
@@ -44,7 +52,10 @@ async def run(url: str, concurrency: int, requests: int, trust_env: bool = False
 
         async def bounded(i: int) -> dict:
             async with limit:
-                return await one(session, url, f"{os.getpid()}-{i}")
+                rid = f"{os.getpid()}-{i}"
+                if per_request:
+                    return await fresh(url, rid, trust_env)
+                return await one(session, url, rid)
 
         measured = await asyncio.gather(*(bounded(i) for i in range(requests)))
         async with session.get(f"{url}/truth") as resp:
@@ -72,10 +83,12 @@ def main() -> None:
     p.add_argument("--concurrency", type=int, default=1)
     p.add_argument("--requests", type=int, default=0, help="default: 4 x concurrency")
     p.add_argument("--trust-env", action="store_true", help="aiohttp trust_env=True")
-    args = p.parse_args()
-    asyncio.run(
-        run(args.url, args.concurrency, args.requests or 4 * args.concurrency, args.trust_env)
+    p.add_argument(
+        "--session-per-request", action="store_true", help="open a new session for every request"
     )
+    args = p.parse_args()
+    n = args.requests or 4 * args.concurrency
+    asyncio.run(run(args.url, args.concurrency, n, args.trust_env, args.session_per_request))
 
 
 if __name__ == "__main__":
