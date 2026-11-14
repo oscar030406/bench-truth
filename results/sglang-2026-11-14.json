@@ -1,0 +1,145 @@
+{
+ "date": "2026-11-14",
+ "tool": "sglang.benchmark.serving (SGLang main 89386ea, with and without PR #50505)",
+ "server": "server-rs: --scenario fast --itl 0.02 --word the; cores 0-3",
+ "client": "cores 4-11; --backend vllm --dataset-name random --random-input-len 8 --random-output-len 256 --random-range-ratio 1 --num-prompts 4 x concurrency --request-rate inf --warmup-requests 1",
+ "machine": "WSL2 Ubuntu 24.04 on Windows 11; client and server on one machine",
+ "notes": {
+  "reported_ttft_later_ms": "mean over the requests after the first max_concurrency requests",
+  "true_ttft_ms": "server time from handler start to the first chunk, mean over all requests"
+ },
+ "runs": [
+  {
+   "version": "89386ea",
+   "round": 1,
+   "max_concurrency": 64,
+   "requests": 256,
+   "true_ttft_ms": 51.2022127421885,
+   "reported_ttft_later_ms": 55.6922618489614,
+   "reported_ttft_first_burst_ms": 56.99578246874637,
+   "reported_mean_ttft_ms": 56.01814200390764,
+   "reported_mean_itl_ms": 20.004797997671563
+  },
+  {
+   "version": "89386ea",
+   "round": 2,
+   "max_concurrency": 64,
+   "requests": 256,
+   "true_ttft_ms": 51.07171697656065,
+   "reported_ttft_later_ms": 55.566326197913206,
+   "reported_ttft_first_burst_ms": 56.10003225000071,
+   "reported_mean_ttft_ms": 55.69975271093508,
+   "reported_mean_itl_ms": 20.0051449833027
+  },
+  {
+   "version": "89386ea",
+   "round": 3,
+   "max_concurrency": 64,
+   "requests": 256,
+   "true_ttft_ms": 51.30006611328275,
+   "reported_ttft_later_ms": 55.39379753646164,
+   "reported_ttft_first_burst_ms": 56.11695896873847,
+   "reported_mean_ttft_ms": 55.57458789453085,
+   "reported_mean_itl_ms": 20.00338519085478
+  },
+  {
+   "version": "sgl-project/sglang#50505",
+   "round": 1,
+   "max_concurrency": 64,
+   "requests": 256,
+   "true_ttft_ms": 50.99102076953588,
+   "reported_ttft_later_ms": 51.383834708333374,
+   "reported_ttft_first_burst_ms": 55.209176593752574,
+   "reported_mean_ttft_ms": 52.34017017968817,
+   "reported_mean_itl_ms": 20.003255364736535
+  },
+  {
+   "version": "sgl-project/sglang#50505",
+   "round": 2,
+   "max_concurrency": 64,
+   "requests": 256,
+   "true_ttft_ms": 50.97022094922021,
+   "reported_ttft_later_ms": 51.37256494270659,
+   "reported_ttft_first_burst_ms": 54.875427078128425,
+   "reported_mean_ttft_ms": 52.248280476562044,
+   "reported_mean_itl_ms": 20.00343959866729
+  },
+  {
+   "version": "sgl-project/sglang#50505",
+   "round": 3,
+   "max_concurrency": 64,
+   "requests": 256,
+   "true_ttft_ms": 51.1027618124964,
+   "reported_ttft_later_ms": 51.434206343747846,
+   "reported_ttft_first_burst_ms": 55.70837253126193,
+   "reported_mean_ttft_ms": 52.50274789062637,
+   "reported_mean_itl_ms": 20.00282336096814
+  },
+  {
+   "version": "89386ea",
+   "round": 1,
+   "max_concurrency": 256,
+   "requests": 1024,
+   "true_ttft_ms": 51.22685800976312,
+   "reported_ttft_later_ms": 66.20264677734467,
+   "reported_ttft_first_burst_ms": 88.33036621093981,
+   "reported_mean_ttft_ms": 71.73457663574345,
+   "reported_mean_itl_ms": 20.010551831583182
+  },
+  {
+   "version": "89386ea",
+   "round": 2,
+   "max_concurrency": 256,
+   "requests": 1024,
+   "true_ttft_ms": 51.138860839845755,
+   "reported_ttft_later_ms": 66.80827391666577,
+   "reported_ttft_first_burst_ms": 96.88394021484027,
+   "reported_mean_ttft_ms": 74.3271904912094,
+   "reported_mean_itl_ms": 20.014062224107686
+  },
+  {
+   "version": "89386ea",
+   "round": 3,
+   "max_concurrency": 256,
+   "requests": 1024,
+   "true_ttft_ms": 51.12191674121058,
+   "reported_ttft_later_ms": 102.61123455078192,
+   "reported_ttft_first_burst_ms": 82.29205137890894,
+   "reported_mean_ttft_ms": 97.53143875781367,
+   "reported_mean_itl_ms": 19.90467236100643
+  },
+  {
+   "version": "sgl-project/sglang#50505",
+   "round": 1,
+   "max_concurrency": 256,
+   "requests": 1024,
+   "true_ttft_ms": 51.10638401367096,
+   "reported_ttft_later_ms": 51.476219871092965,
+   "reported_ttft_first_burst_ms": 98.37185870702837,
+   "reported_mean_ttft_ms": 63.20012958007681,
+   "reported_mean_itl_ms": 20.009858869596354
+  },
+  {
+   "version": "sgl-project/sglang#50505",
+   "round": 2,
+   "max_concurrency": 256,
+   "requests": 1024,
+   "true_ttft_ms": 51.14143347070321,
+   "reported_ttft_later_ms": 51.503097877604546,
+   "reported_ttft_first_burst_ms": 97.18980656640719,
+   "reported_mean_ttft_ms": 62.924775049805206,
+   "reported_mean_itl_ms": 20.011094132134644
+  },
+  {
+   "version": "sgl-project/sglang#50505",
+   "round": 3,
+   "max_concurrency": 256,
+   "requests": 1024,
+   "true_ttft_ms": 51.1140981660132,
+   "reported_ttft_later_ms": 51.436640278646955,
+   "reported_ttft_first_burst_ms": 91.73047022265158,
+   "reported_mean_ttft_ms": 61.51009776464811,
+   "reported_mean_itl_ms": 20.009809722093294
+  }
+ ]
+}

@@ -7,6 +7,7 @@ This file lists the changes in each release. The format follows [Keep a Changelo
 ### Added
 
 - `bench_truth.reference --session-per-request` opens a new session for every request.
+- Results for SGLang `bench_serving` with and without sgl-project/sglang#50505 in `results/sglang-2026-11-14.json`.
 
 ### Fixed
 

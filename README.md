@@ -42,6 +42,17 @@ The guidellm ITL error comes from a step of the wall clock. guidellm stamps ever
 
 The first burst costs more in every client. At concurrency 256, the true TTFT of the first burst is 50.9 to 51.1 ms in each run. In that burst, guidellm reports 60.9 ms, aiperf 63.4 ms and inference-perf 52.5 ms for the same requests. The summaries of the tools include the first burst. Their mean TTFT at concurrency 256 is 5.7% (guidellm), 7.0% (aiperf) and 1.1% (inference-perf) above the truth.
 
+## SGLang `bench_serving`: a new connection for every request
+
+SGLang's `bench_serving` opens a new aiohttp session for every request, so each request also opens a new connection. The TTFT timer starts before that connection exists. The table gives the mean TTFT of the requests after the first burst, in three runs of SGLang `89386ea`. The fix shares one session across a run, in [sgl-project/sglang#50505](https://github.com/sgl-project/sglang/pull/50505).
+
+| `--max-concurrency` | True TTFT | Before | With the fix |
+|---|---|---|---|
+| 64 | 51.0 to 51.3 ms | 55.7, 55.6, 55.4 ms | 51.4, 51.4, 51.4 ms |
+| 256 | 51.1 to 51.2 ms | 66.2, 66.8, 102.6 ms | 51.5, 51.5, 51.4 ms |
+
+The raw numbers are in [`results/sglang-2026-11-14.json`](results/sglang-2026-11-14.json). `bench_truth.reference --session-per-request` shows the same cost with plain aiohttp.
+
 ## How it works
 
 - `server-rs/` is the server, in Rust (tokio and axum). Its own delay to the first token stays at 51 ms up to concurrency 1024, so the server is not what slows a client down. `bench_truth/server.py` is a Python version for low concurrency.
