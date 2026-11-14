@@ -2,7 +2,7 @@
 
 A streaming server with known timings, for checking the numbers that LLM serving benchmarks report.
 
-Benchmark clients such as `vllm bench serve`, guidellm, aiperf and inference-perf report time to first token (TTFT), inter-token latency (ITL) and throughput. People pick engines and settings from these numbers. bench-truth checks a client against a server whose timing is fixed in advance: the server sends every chunk on a schedule and records when it wrote each one, so each reported number has a true value to compare with.
+Benchmark clients such as `vllm bench serve`, guidellm, aiperf and inference-perf report time to first token (TTFT), inter-token latency (ITL) and throughput. People pick engines and settings from these numbers. bench-truth checks a client against a server with a fixed schedule. The server sends every chunk at a planned time and records when it wrote each one. Each number that the client reports then has a true value to compare with.
 
 ## First finding: `trust_env=True` adds up to 26 ms to every request
 
@@ -18,13 +18,13 @@ Time from the client sending a request to the server's handler starting, with pl
 
 The same delay shows in `vllm bench serve` (vLLM `191e5d5`). At concurrency 256, the server's true TTFT is 51.0 ms. vllm bench reports 73.7 ms, 44% too high. With `trust_env` switched off, it reports 51.4 ms. Mean ITL is right in both cases.
 
-The aiohttp report is [aio-libs/aiohttp#14378](https://github.com/aio-libs/aiohttp/issues/14378). The fix for vLLM is in [vllm-project/vllm#67608](https://github.com/vllm-project/vllm/pull/67608): the benchmark trusts the environment only when a proxy applies to the target.
+The aiohttp report is [aio-libs/aiohttp#14378](https://github.com/aio-libs/aiohttp/issues/14378). The fix for vLLM is in [vllm-project/vllm#67624](https://github.com/vllm-project/vllm/pull/67624): the benchmark trusts the environment only when a proxy applies to the target.
 
 ## Other benchmark clients
 
 We ran guidellm, aiperf and inference-perf against the Rust server with `--scenario fast --itl 0.02 --word the`. Each run used 4 x concurrency requests with 256 output tokens. The TTFT columns are means over the requests after the first burst. The true TTFT is the server's time from handler start to the first chunk. ITL error compares the client's mean ITL with the server's mean time between chunks. The raw numbers are in [`results/tools-2026-11-14.json`](results/tools-2026-11-14.json).
 
-| Tool | Version | Concurrency | Reported TTFT (ms) | True TTFT (ms) | TTFT error | ITL error | Cause of errors above 5% |
+| Tool | Version | Concurrency | Reported TTFT after first burst (ms) | True TTFT after first burst (ms) | TTFT error | ITL error, all requests | Cause of errors above 5% |
 |---|---|---|---|---|---|---|---|
 | guidellm | 0.8.1 | 16 | 51.48 | 51.19 | 0.56% | 0.00% | |
 | guidellm | 0.8.1 | 64 | 51.18 | 50.89 | 0.56% | 0.00% | |
@@ -36,17 +36,17 @@ We ran guidellm, aiperf and inference-perf against the Rust server with `--scena
 | inference-perf | 0.7.0 | 64 | 51.25 | 51.00 | 0.50% | 0.00% | |
 | inference-perf | 0.7.0 | 256 | 51.19 | 50.97 | 0.44% | 0.00% | |
 
-All three clients report TTFT within 1.3% of the truth at concurrency 256. None of them has the `trust_env` delay. aiperf and inference-perf use aiohttp 3.14.5 with `trust_env=False`. guidellm uses httpx 0.28.1. httpx reads the proxy variables once, when guidellm builds the client, and does not look up `~/.netrc`.
+After the first burst, all three clients report TTFT within 1.3% of the truth at every concurrency. None of them has the `trust_env` delay. aiperf and inference-perf use aiohttp 3.14.5 with `trust_env=False`. guidellm uses httpx 0.28.1. httpx reads the proxy variables once, when guidellm builds the client, and does not look up `~/.netrc`.
 
-The guidellm ITL error comes from a step of the wall clock. guidellm stamps every chunk with `time.time()`. In the WSL2 guest of the test machine, the wall clock steps about 3 s forward every 32.6 s to catch up with the host. A request in flight during a step reports a latency 3 s too long. Its ITL is then about 3 s / 255 = 12 ms too high. At concurrency 256, one wave of 256 requests spanned a step. Without those requests, the guidellm ITL error is 0.001%. Whether a run catches a step depends on its timing. Trial runs at concurrency 16 showed the same error in some runs and not in others. aiperf and inference-perf use `time.perf_counter()`, which does not step.
+The guidellm ITL error comes from a step of the wall clock. guidellm stamps every chunk with `time.time()`. In the WSL2 guest of the test machine, the wall clock steps forward every 32.6 s to catch up with the host. Each step is up to about 3 s. A request in flight during a step reports a latency 3 s too long. Its ITL is then about 3 s / 255 = 12 ms too high. At concurrency 256, one wave of 256 requests spanned a step. Without those requests, the guidellm ITL error is 0.001%. Whether a run catches a step depends on its timing. Trial runs at concurrency 16 showed the same error in some runs and not in others. aiperf and inference-perf use `time.perf_counter()`, which does not step. The steps come from the WSL2 guest. On a machine whose wall clock does not step, this error does not appear.
 
-The first burst costs more in every client. At concurrency 256, guidellm reports 60.9 ms, aiperf 63.4 ms and inference-perf 52.5 ms for a true 50.9 to 51.1 ms.
+The first burst costs more in every client. At concurrency 256, the true TTFT of the first burst is 50.9 to 51.1 ms in each run. In that burst, guidellm reports 60.9 ms, aiperf 63.4 ms and inference-perf 52.5 ms for the same requests. The summaries of the tools include the first burst. Their mean TTFT at concurrency 256 is 5.7% (guidellm), 7.0% (aiperf) and 1.1% (inference-perf) above the truth.
 
 ## How it works
 
 - `server-rs/` is the server, in Rust (tokio and axum). Its own delay to the first token stays at 51 ms up to concurrency 1024, so the server is not what slows a client down. `bench_truth/server.py` is a Python version for low concurrency.
 - The server speaks the OpenAI streaming API on `/v1/completions` and `/v1/chat/completions`. A scenario fixes the TTFT, the time between tokens and the token count. `--itl` and `--tokens` change one of them. By default chunk i carries the text ` t{i}`. With `--word the`, every chunk carries ` the`, which the Qwen3 tokenizer counts as one token. Use it for clients that count tokens by tokenizing the text. aiperf and inference-perf count about 3.6 tokens per ` t{i}` chunk, so they report ITL 72% too low.
-- `/truth` returns one record per request: the `x-bt-id` header if the client sent one, the arrival time on `CLOCK_MONOTONIC`, and the time each chunk was written. Python's `time.perf_counter()` reads the same clock on Linux, so a client on the same machine can split its TTFT into time before the server's handler and time inside the server.
+- `/truth` returns one record per request: the `x-bt-id` header if the client sent one, the arrival time on `CLOCK_MONOTONIC`, and the time when the server wrote each chunk. Python's `time.perf_counter()` reads the same clock on Linux. A client on the same machine can therefore split its TTFT into two parts. The first part ends when the server's handler starts, and the second part is the time inside the server.
 - `bench_truth.reference` is a minimal aiohttp client. It sends ids, so each of its requests matches a server record.
 - `scripts/trace_vllm_bench.py` runs `vllm bench serve` with an aiohttp trace on every request. `BT_NO_TRUST_ENV=1` switches `trust_env` off.
 - `scripts/guidellm_bench.py`, `scripts/aiperf_bench.py` and `scripts/inference_perf_bench.py` run one client, read its per-request output, and compare it with `/truth` (`bench_truth/tools.py`).
