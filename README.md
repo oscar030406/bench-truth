@@ -18,6 +18,8 @@ Time from the client sending a request to the server's handler starting, with pl
 
 The same delay shows in `vllm bench serve` (vLLM `191e5d5`). At concurrency 256, the server's true TTFT is 51.0 ms. vllm bench reports 73.7 ms, 44% too high. With `trust_env` switched off, it reports 51.4 ms. Mean ITL is right in both cases.
 
+The fix for vLLM is in [vllm-project/vllm#67608](https://github.com/vllm-project/vllm/pull/67608): the benchmark trusts the environment only when a proxy applies to the target.
+
 ## How it works
 
 - `server-rs/` is the server, in Rust (tokio and axum). Its own delay to the first token stays at 51 ms up to concurrency 1024, so the server is not what slows a client down. `bench_truth/server.py` is a Python version for low concurrency.
