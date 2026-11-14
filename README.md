@@ -57,13 +57,37 @@ The raw numbers are in [`results/sglang-2026-11-14.json`](results/sglang-2026-11
 
 ## How it works
 
-- `server-rs/` is the server, in Rust (tokio and axum). Its own delay to the first token stays at 51 ms up to concurrency 1024, so the server is not what slows a client down. `bench_truth/server.py` is a Python version for low concurrency.
+- `server-rs/` is the server, in Rust (tokio and axum). Its own delay to the first token stays at 51 ms up to concurrency 1024, so the server is not what slows a client down. A packet capture checks its records, as the next section shows. `bench_truth/server.py` is a Python version for low concurrency.
 - The server speaks the OpenAI streaming API on `/v1/completions` and `/v1/chat/completions`. A scenario fixes the TTFT, the time between tokens and the token count. `--itl` and `--tokens` change one of them. By default chunk i carries the text ` t{i}`. With `--word the`, every chunk carries ` the`, which the Qwen3 tokenizer counts as one token. Use it for clients that count tokens by tokenizing the text. aiperf and inference-perf count about 3.6 tokens per ` t{i}` chunk, so they report ITL 72% too low.
 - `/truth` returns one record per request: the `x-bt-id` header if the client sent one, the arrival time on `CLOCK_MONOTONIC`, and the time when the server wrote each chunk. Python's `time.perf_counter()` reads the same clock on Linux. A client on the same machine can therefore split its TTFT into two parts. The first part ends when the server's handler starts, and the second part is the time inside the server.
 - `bench_truth.reference` is a minimal aiohttp client. It sends ids, so each of its requests matches a server record. `--session-per-request` opens a new session for every request, as SGLang's `bench_serving` does.
 - The server sends the final usage chunk only when the request sets `stream_options.include_usage`, as the OpenAI API does.
 - `scripts/trace_vllm_bench.py` runs `vllm bench serve` with an aiohttp trace on every request. `BT_NO_TRUST_ENV=1` switches `trust_env` off.
 - `scripts/guidellm_bench.py`, `scripts/aiperf_bench.py` and `scripts/inference_perf_bench.py` run one client, read its per-request output, and compare it with `/truth` (`bench_truth/tools.py`).
+
+## How we checked the server
+
+The comparisons above are only as good as the server's records. `scripts/wire_check.py` compares the records of one run with a tcpdump capture of the same run. It measures two delays:
+
+- From the last packet of a request to the start of the server's handler.
+- From the recorded send time of a chunk to the first packet that carries it.
+
+The table shows the Rust server on 4 cores with `bench_truth.reference`, 64 tokens per response and 4 x concurrency requests. The raw numbers are in [`results/wire-2026-11-14.json`](results/wire-2026-11-14.json).
+
+| Concurrency | Request to handler, median / p99 | Recorded send to packet, median / p99 / max |
+|---|---|---|
+| 16 | 0.026 / 0.105 ms | 0.002 / 0.039 / 0.412 ms |
+| 64 | 0.024 / 0.091 ms | 0.002 / 0.028 / 0.285 ms |
+| 256 | 0.023 / 11.031 ms | 0.002 / 0.018 / 0.275 ms |
+| 1024 | 0.023 / 0.208 ms | 0.002 / 0.015 / 0.315 ms |
+
+A few requests of the first burst wait longer for the handler. At concurrency 256, the longest wait was 14 ms. The TTFT split in this README counts that wait as time before the handler. It is a small part of the first burst's cost. In the same run, the first burst waited 0.64 ms in the server on average. Before the handler, the client measured 14.8 ms for the same requests.
+
+Before version 0.2.0, the Rust server did not set `TCP_NODELAY`. At concurrency 1024, Nagle's algorithm then held chunks until the client acknowledged the previous chunk. Most chunks (65%) left more than 1 ms after their record, and the worst chunk left 44 ms late.
+
+The first chunk of a response was never held: it left at most 0.09 ms after its record. So the TTFT numbers above do not change. Apart from the guidellm run that the clock step explains, the ITL errors above are 0.10% or less. So the held chunks did not change them either.
+
+Version 0.2.0 sets `TCP_NODELAY`. Python's asyncio sets it on every TCP socket, so servers on uvicorn, such as vLLM and SGLang, also send each chunk at once.
 
 ## Requirements
 
@@ -79,6 +103,13 @@ git clone https://github.com/oscar030406/bench-truth
 cd bench-truth
 pip install -e .
 (cd server-rs && cargo build --release)
+```
+
+Instead of the Rust build, you can download the static server binary for x86-64 Linux from a release:
+
+```bash
+curl -sL https://github.com/oscar030406/bench-truth/releases/download/v0.2.0/bench-truth-server-x86_64-linux.tar.gz | tar xz
+./bench-truth-server --scenario fast --port 8100
 ```
 
 ## Usage

@@ -4,13 +4,16 @@ This file lists the changes in each release. The format follows [Keep a Changelo
 
 ## [Unreleased]
 
+## [0.2.0] - 2026-11-14
+
 ### Added
 
 - `bench_truth.reference --session-per-request` opens a new session for every request.
 - Results for SGLang `bench_serving` with and without sgl-project/sglang#50505 in `results/sglang-2026-11-14.json`.
-
 - Tests that run the same protocol checks against both servers, `check.sh`, and a GitHub Actions workflow that runs it.
 - The Python server takes `--itl`, `--tokens` and `--word`, like the Rust server.
+- Each release has a static server binary for x86-64 Linux, built and tested by `.github/workflows/release.yml`.
+- `scripts/wire_check.py` compares the server's records with a tcpdump capture of the same run. The results are in `results/wire-2026-11-14.json`.
 
 ### Changed
 
@@ -18,6 +21,7 @@ This file lists the changes in each release. The format follows [Keep a Changelo
 
 ### Fixed
 
+- The Rust server sets `TCP_NODELAY`. Without it, at concurrency 1024, chunks left up to 44 ms after the server recorded them.
 - Both servers send the final usage chunk only when the request sets `stream_options.include_usage`. SGLang's `bench_serving` does not set it and failed on the empty `choices` list.
 
 ## [0.1.0] - 2026-11-14
@@ -31,5 +35,6 @@ This file lists the changes in each release. The format follows [Keep a Changelo
 - Scripts that run `vllm bench serve`, guidellm, aiperf and inference-perf against the server.
 - Results for guidellm 0.8.1, aiperf 0.13.0 and inference-perf 0.7.0 in `results/tools-2026-11-14.json`.
 
-[Unreleased]: https://github.com/oscar030406/bench-truth/compare/v0.1.0...HEAD
+[Unreleased]: https://github.com/oscar030406/bench-truth/compare/v0.2.0...HEAD
+[0.2.0]: https://github.com/oscar030406/bench-truth/compare/v0.1.0...v0.2.0
 [0.1.0]: https://github.com/oscar030406/bench-truth/releases/tag/v0.1.0
