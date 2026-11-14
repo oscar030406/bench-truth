@@ -35,9 +35,11 @@ async def one(session: aiohttp.ClientSession, url: str, rid: str) -> dict:
     return {"id": rid, "sent": sent, "first": first}
 
 
-async def run(url: str, concurrency: int, requests: int) -> None:
+async def run(url: str, concurrency: int, requests: int, trust_env: bool = False) -> None:
     limit = asyncio.Semaphore(concurrency)
-    async with aiohttp.ClientSession(connector=aiohttp.TCPConnector(limit=0)) as session:
+    async with aiohttp.ClientSession(
+        connector=aiohttp.TCPConnector(limit=0), trust_env=trust_env
+    ) as session:
         await one(session, url, "warmup")
 
         async def bounded(i: int) -> dict:
@@ -69,8 +71,11 @@ def main() -> None:
     p.add_argument("--url", default="http://127.0.0.1:8100")
     p.add_argument("--concurrency", type=int, default=1)
     p.add_argument("--requests", type=int, default=0, help="default: 4 x concurrency")
+    p.add_argument("--trust-env", action="store_true", help="aiohttp trust_env=True")
     args = p.parse_args()
-    asyncio.run(run(args.url, args.concurrency, args.requests or 4 * args.concurrency))
+    asyncio.run(
+        run(args.url, args.concurrency, args.requests or 4 * args.concurrency, args.trust_env)
+    )
 
 
 if __name__ == "__main__":
