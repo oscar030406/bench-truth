@@ -50,6 +50,9 @@ struct Record {
 #[derive(Clone)]
 struct AppState {
     scenario: Scenario,
+    /// With `--word`, every chunk carries this word, so a client that re-tokenizes
+    /// the text counts one token per chunk. Without it, chunk i carries `t{i}`.
+    word: Option<Arc<str>>,
     records: Arc<Mutex<Vec<Record>>>,
 }
 
@@ -87,7 +90,8 @@ async fn stream(State(state): State<AppState>, uri: Uri, headers: HeaderMap, Jso
         let mut sent = Vec::with_capacity(n);
         for i in 0..n {
             sleep_until(arrived_instant + Duration::from_secs_f64(s.ttft + i as f64 * s.itl)).await;
-            if tx.send(Ok(chunk(chat, Some(&format!(" t{i}")), None))).await.is_err() {
+            let text = state.word.as_deref().map_or_else(|| format!(" t{i}"), |w| format!(" {w}"));
+            if tx.send(Ok(chunk(chat, Some(&text), None))).await.is_err() {
                 return; // the client went away; no record
             }
             sent.push(monotonic() - arrived);
@@ -128,7 +132,8 @@ async fn main() {
     if args.iter().any(|a| a == "--tokens") {
         chosen.tokens = flag("--tokens", "").parse().expect("--tokens takes a count");
     }
-    let state = AppState { scenario: chosen, records: Arc::default() };
+    let word = args.iter().any(|a| a == "--word").then(|| Arc::from(flag("--word", "")));
+    let state = AppState { scenario: chosen, word, records: Arc::default() };
     let app = Router::new()
         .route("/v1/completions", post(stream))
         .route("/v1/chat/completions", post(stream))
