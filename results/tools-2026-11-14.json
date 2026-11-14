@@ -1,0 +1,320 @@
+{
+ "date": "2026-11-14",
+ "server": "server-rs: --scenario fast --itl 0.02 --word the (256 tokens, 50 ms TTFT, 20 ms between tokens); cores 0-3",
+ "clients": "cores 4-11; requests = 4 x concurrency; prompt 8 tokens, 256 output tokens; tokenizer Qwen/Qwen3-32B; completions endpoint, streaming",
+ "machine": "WSL2 Ubuntu 24.04 on Windows 11; client and server on one machine",
+ "notes": {
+  "ttft_later": "mean over requests after the first burst of concurrency requests; true value is the server time from handler start to the first chunk",
+  "late_requests": "requests whose reported latency exceeds the server time from handler start to the last chunk by more than 0.5 s",
+  "itl_error_pct_on_time": "ITL error over the requests that are not late"
+ },
+ "runs": [
+  {
+   "tool": "guidellm",
+   "version": "0.8.1",
+   "concurrency": 16,
+   "requests": 64,
+   "late_requests": 0,
+   "itl_error_pct_on_time": 0.0003977223678599338,
+   "reported_ttft_ms": 51.43705755472183,
+   "true_ttft_ms": 51.12340700000573,
+   "ttft_split": {
+    "first": {
+     "bench_ms": 51.313430070877075,
+     "server_ms": 50.92126768755634,
+     "n": 16
+    },
+    "later": {
+     "bench_ms": 51.47826671600342,
+     "server_ms": 51.19078677082219,
+     "n": 48
+    }
+   },
+   "reported_ttft_later_ms": 51.47826671600342,
+   "true_ttft_later_ms": 51.19078677082219,
+   "ttft_later_error_pct": 0.5615853228985404,
+   "reported_itl_ms": 19.999447391898023,
+   "true_itl_ms": 19.999367849938654,
+   "itl_error_pct": 0.00039772236785757457,
+   "server_records": 64,
+   "client_requests": 64
+  },
+  {
+   "tool": "guidellm",
+   "version": "0.8.1",
+   "concurrency": 64,
+   "requests": 256,
+   "late_requests": 0,
+   "itl_error_pct_on_time": 0.003474845807953926,
+   "reported_ttft_ms": 52.92745493352413,
+   "true_ttft_ms": 50.98365461327603,
+   "ttft_split": {
+    "first": {
+     "bench_ms": 58.1800676882267,
+     "server_ms": 51.254107687476846,
+     "n": 64
+    },
+    "later": {
+     "bench_ms": 51.17658401528994,
+     "server_ms": 50.89350358854242,
+     "n": 192
+    }
+   },
+   "reported_ttft_later_ms": 51.17658401528994,
+   "true_ttft_later_ms": 50.89350358854242,
+   "ttft_later_error_pct": 0.5562211417711215,
+   "reported_itl_ms": 20.00001356297848,
+   "true_itl_ms": 19.999318617493884,
+   "itl_error_pct": 0.0034748458079401864,
+   "server_records": 256,
+   "client_requests": 256
+  },
+  {
+   "tool": "guidellm",
+   "version": "0.8.1",
+   "concurrency": 256,
+   "requests": 1024,
+   "late_requests": 256,
+   "itl_error_pct_on_time": 0.0007786551823912793,
+   "reported_ttft_ms": 53.73937403783202,
+   "true_ttft_ms": 50.84953169823958,
+   "ttft_split": {
+    "first": {
+     "bench_ms": 60.930282808840275,
+     "server_ms": 50.872946257804585,
+     "n": 256
+    },
+    "later": {
+     "bench_ms": 51.34240444749594,
+     "server_ms": 50.84172684505125,
+     "n": 768
+    }
+   },
+   "reported_ttft_later_ms": 51.34240444749594,
+   "true_ttft_later_ms": 50.84172684505125,
+   "ttft_later_error_pct": 0.9847769411345701,
+   "reported_itl_ms": 22.917264199578298,
+   "true_itl_ms": 19.999657948196226,
+   "itl_error_pct": 14.588280754297656,
+   "server_records": 1024,
+   "client_requests": 1024
+  },
+  {
+   "tool": "aiperf",
+   "version": "0.13.0",
+   "concurrency": 16,
+   "requests": 64,
+   "late_requests": 0,
+   "itl_error_pct_on_time": 0.005719845880442053,
+   "reported_ttft_ms": 52.491017484375,
+   "true_ttft_ms": 50.91986960938044,
+   "ttft_split": {
+    "first": {
+     "bench_ms": 55.8488865,
+     "server_ms": 50.80243987498534,
+     "n": 16
+    },
+    "later": {
+     "bench_ms": 51.3717278125,
+     "server_ms": 50.95901285417881,
+     "n": 48
+    }
+   },
+   "reported_ttft_later_ms": 51.3717278125,
+   "true_ttft_later_ms": 50.95901285417881,
+   "ttft_later_error_pct": 0.8098959049740401,
+   "reported_itl_ms": 20.001539337009806,
+   "true_itl_ms": 20.000395345220575,
+   "itl_error_pct": 0.005719845880468838,
+   "server_records": 64,
+   "client_requests": 64
+  },
+  {
+   "tool": "aiperf",
+   "version": "0.13.0",
+   "concurrency": 64,
+   "requests": 256,
+   "late_requests": 0,
+   "itl_error_pct_on_time": 0.023352531744108684,
+   "reported_ttft_ms": 52.4353406796875,
+   "true_ttft_ms": 51.05222278124266,
+   "ttft_split": {
+    "first": {
+     "bench_ms": 55.410621953124995,
+     "server_ms": 51.00719882808846,
+     "n": 64
+    },
+    "later": {
+     "bench_ms": 51.44358025520833,
+     "server_ms": 51.06723076562739,
+     "n": 192
+    }
+   },
+   "reported_ttft_later_ms": 51.44358025520833,
+   "true_ttft_later_ms": 51.06723076562739,
+   "ttft_later_error_pct": 0.7369686664784926,
+   "reported_itl_ms": 20.004130616268384,
+   "true_itl_ms": 19.999460235968126,
+   "itl_error_pct": 0.023352531744123953,
+   "server_records": 256,
+   "client_requests": 256
+  },
+  {
+   "tool": "aiperf",
+   "version": "0.13.0",
+   "concurrency": 256,
+   "requests": 1024,
+   "late_requests": 0,
+   "itl_error_pct_on_time": 0.09689634964522414,
+   "reported_ttft_ms": 54.56552806542968,
+   "true_ttft_ms": 51.006908348631974,
+   "ttft_split": {
+    "first": {
+     "bench_ms": 63.40627640234375,
+     "server_ms": 51.0597755742257,
+     "n": 256
+    },
+    "later": {
+     "bench_ms": 51.618611953125,
+     "server_ms": 50.989285940100736,
+     "n": 768
+    }
+   },
+   "reported_ttft_later_ms": 51.618611953125,
+   "true_ttft_later_ms": 50.989285940100736,
+   "ttft_later_error_pct": 1.234231861500389,
+   "reported_itl_ms": 20.019097576493568,
+   "true_itl_ms": 19.999718579250953,
+   "itl_error_pct": 0.0968963496452412,
+   "server_records": 1024,
+   "client_requests": 1024
+  },
+  {
+   "tool": "inference-perf",
+   "version": "0.7.0",
+   "concurrency": 16,
+   "requests": 64,
+   "late_requests": 0,
+   "itl_error_pct_on_time": 0.0008185738480980096,
+   "reported_ttft_ms": 51.84003737502252,
+   "true_ttft_ms": 51.06333428121701,
+   "ttft_split": {
+    "first": {
+     "bench_ms": 52.92519568754983,
+     "server_ms": 50.935894312431174,
+     "n": 16
+    },
+    "later": {
+     "bench_ms": 51.47831793751342,
+     "server_ms": 51.10581427081229,
+     "n": 48
+    }
+   },
+   "reported_ttft_later_ms": 51.47831793751342,
+   "true_ttft_later_ms": 51.10581427081229,
+   "ttft_later_error_pct": 0.7288870591655431,
+   "reported_itl_ms": 20.000245717524393,
+   "true_itl_ms": 20.000082002083527,
+   "itl_error_pct": 0.0008185738480931524,
+   "server_records": 64,
+   "client_requests": 64
+  },
+  {
+   "tool": "inference-perf",
+   "version": "0.7.0",
+   "concurrency": 64,
+   "requests": 256,
+   "late_requests": 0,
+   "itl_error_pct_on_time": 0.0014810086623154115,
+   "reported_ttft_ms": 51.563543527343825,
+   "true_ttft_ms": 50.98836975391308,
+   "ttft_split": {
+    "first": {
+     "bench_ms": 52.50424968748746,
+     "server_ms": 50.96325524998946,
+     "n": 64
+    },
+    "later": {
+     "bench_ms": 51.24997480729595,
+     "server_ms": 50.99674125522095,
+     "n": 192
+    }
+   },
+   "reported_ttft_later_ms": 51.24997480729595,
+   "true_ttft_later_ms": 50.99674125522095,
+   "ttft_later_error_pct": 0.4965681058082841,
+   "reported_itl_ms": 20.000275417984046,
+   "true_itl_ms": 19.999979216559385,
+   "itl_error_pct": 0.0014810086623256813,
+   "server_records": 256,
+   "client_requests": 256
+  },
+  {
+   "tool": "inference-perf",
+   "version": "0.7.0",
+   "concurrency": 256,
+   "requests": 1024,
+   "late_requests": 0,
+   "itl_error_pct_on_time": 0.004781417066273223,
+   "reported_ttft_ms": 51.531774522457056,
+   "true_ttft_ms": 50.967188043943956,
+   "ttft_split": {
+    "first": {
+     "bench_ms": 52.544584367192115,
+     "server_ms": 50.96110410547361,
+     "n": 256
+    },
+    "later": {
+     "bench_ms": 51.194171240878696,
+     "server_ms": 50.96921602343407,
+     "n": 768
+    }
+   },
+   "reported_ttft_later_ms": 51.194171240878696,
+   "true_ttft_later_ms": 50.96921602343407,
+   "ttft_later_error_pct": 0.4413550668332748,
+   "reported_itl_ms": 20.000922491996022,
+   "true_itl_ms": 19.9999662101984,
+   "itl_error_pct": 0.004781417066258233,
+   "server_records": 1024,
+   "client_requests": 1024
+  }
+ ],
+ "without_word_c16": {
+  "guidellm": {
+   "reported_itl_ms": 24.165314377522932,
+   "true_itl_ms": 19.99915312604173,
+   "itl_error_pct": 20.831688348124455
+  },
+  "aiperf": {
+   "reported_itl_ms": 5.586186361634036,
+   "true_itl_ms": 19.999856706066193,
+   "itl_error_pct": -72.06886807374136
+  },
+  "inference-perf": {
+   "reported_itl_ms": 5.5860153614628665,
+   "true_itl_ms": 19.99979501568629,
+   "itl_error_pct": -72.06963692837037
+  }
+ },
+ "wall_clock_steps": {
+  "method": "sample time.time() - time.monotonic() every 50 ms for 90 s in the WSL2 guest",
+  "steps_s": [
+   3.0557,
+   2.8626,
+   2.99
+  ],
+  "step_monotonic_times_s": [
+   2250.36,
+   2282.92,
+   2315.48
+  ],
+  "host_elapsed_s": 30.137,
+  "guest_monotonic_elapsed_s": 27.627
+ },
+ "trust_env": {
+  "guidellm": "httpx 0.28.1 AsyncClient, trust_env=True by default; httpx reads proxy variables once when the client is built and has no netrc lookup",
+  "aiperf": "aiohttp 3.14.5, trust_env=AIPERF_HTTP_TRUST_ENV, default False",
+  "inference-perf": "aiohttp 3.14.5 ClientSession with the default trust_env=False"
+ }
+}
