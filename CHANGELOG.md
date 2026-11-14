@@ -9,6 +9,13 @@ This file lists the changes in each release. The format follows [Keep a Changelo
 - `bench_truth.reference --session-per-request` opens a new session for every request.
 - Results for SGLang `bench_serving` with and without sgl-project/sglang#50505 in `results/sglang-2026-11-14.json`.
 
+- Tests that run the same protocol checks against both servers, `check.sh`, and a GitHub Actions workflow that runs it.
+- The Python server takes `--itl`, `--tokens` and `--word`, like the Rust server.
+
+### Changed
+
+- The Python server listens on 127.0.0.1 only, like the Rust server.
+
 ### Fixed
 
 - Both servers send the final usage chunk only when the request sets `stream_options.include_usage`. SGLang's `bench_serving` does not set it and failed on the empty `choices` list.

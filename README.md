@@ -1,5 +1,7 @@
 # bench-truth
 
+[![check](https://github.com/oscar030406/bench-truth/actions/workflows/check.yml/badge.svg)](https://github.com/oscar030406/bench-truth/actions/workflows/check.yml)
+
 A streaming server with known timings, for checking the numbers that LLM serving benchmarks report.
 
 Benchmark clients such as `vllm bench serve`, guidellm, aiperf and inference-perf report time to first token (TTFT), inter-token latency (ITL) and throughput. People pick engines and settings from these numbers. bench-truth checks a client against a server with a fixed schedule. The server sends every chunk at a planned time and records when it wrote each one. Each number that the client reports then has a true value to compare with.
@@ -103,6 +105,10 @@ To check `vllm bench serve`, run it against the server with `--save-detailed`, s
 | `fast` | 50 ms | 5 ms | 256 | |
 
 With `usage_eos`, `vllm bench serve` reports 1.6% more output tokens and 1.6% lower time per output token, because it takes the count from `usage`. guidellm reports the same kind of error in [guidellm#1565](https://github.com/vllm-project/guidellm/issues/1565).
+
+## Tests
+
+Run `bash check.sh` on Linux, with `uv` and `cargo` installed. It runs ruff, builds the Rust server, and runs the same protocol tests against both servers. The tests check the chunk schedule, the `/truth` records, the clock that the arrival time uses, and the usage chunk.
 
 ## Limitations
 
