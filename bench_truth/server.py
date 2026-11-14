@@ -67,9 +67,11 @@ class Server:
             await asyncio.sleep(max(0.0, target - time.perf_counter()))
             await resp.write(_chunk(kind, f" t{i}"))
             sent.append(time.perf_counter() - arrived)
-        usage = {"prompt_tokens": 8, "completion_tokens": n + int(s.usage_counts_eos)}
-        usage["total_tokens"] = usage["prompt_tokens"] + usage["completion_tokens"]
-        await resp.write(_chunk(kind, None, usage))
+        # Like the OpenAI API, send the usage chunk only when the client asks for it.
+        if (body.get("stream_options") or {}).get("include_usage"):
+            usage = {"prompt_tokens": 8, "completion_tokens": n + int(s.usage_counts_eos)}
+            usage["total_tokens"] = usage["prompt_tokens"] + usage["completion_tokens"]
+            await resp.write(_chunk(kind, None, usage))
         await resp.write(b"data: [DONE]\n\n")
         await resp.write_eof()
         self.records.append({"id": rid, "arrived": arrived, "tokens": n, "sent": sent})

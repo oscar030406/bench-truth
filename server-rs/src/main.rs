@@ -85,6 +85,8 @@ async fn stream(State(state): State<AppState>, uri: Uri, headers: HeaderMap, Jso
     let chat = uri.path().ends_with("chat/completions");
     let s = state.scenario;
     let n = req["max_tokens"].as_u64().map_or(s.tokens, |m| s.tokens.min(m as usize));
+    // Like the OpenAI API, send the usage chunk only when the client asks for it.
+    let include_usage = req["stream_options"]["include_usage"].as_bool().unwrap_or(false);
     let (tx, rx) = tokio::sync::mpsc::channel::<Result<Bytes, std::convert::Infallible>>(16);
     tokio::spawn(async move {
         let mut sent = Vec::with_capacity(n);
@@ -96,9 +98,11 @@ async fn stream(State(state): State<AppState>, uri: Uri, headers: HeaderMap, Jso
             }
             sent.push(monotonic() - arrived);
         }
-        let completion = n + usize::from(s.usage_counts_eos);
-        let usage = json!({"prompt_tokens": 8, "completion_tokens": completion, "total_tokens": 8 + completion});
-        let _ = tx.send(Ok(chunk(chat, None, Some(&usage)))).await;
+        if include_usage {
+            let completion = n + usize::from(s.usage_counts_eos);
+            let usage = json!({"prompt_tokens": 8, "completion_tokens": completion, "total_tokens": 8 + completion});
+            let _ = tx.send(Ok(chunk(chat, None, Some(&usage)))).await;
+        }
         let _ = tx.send(Ok(Bytes::from_static(b"data: [DONE]\n\n"))).await;
         state.records.lock().unwrap().push(Record { id, arrived, tokens: n, sent });
     });
