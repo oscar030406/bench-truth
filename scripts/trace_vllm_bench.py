@@ -61,6 +61,6 @@ def _dump() -> None:
 
 atexit.register(_dump)
 sys.argv = ["vllm", "bench", "serve", *sys.argv[2:]]
-from vllm.entrypoints.cli.main import main  # imported after the patch
+from vllm.entrypoints.cli.main import main  # noqa: E402  imported after the patch
 
 main()
