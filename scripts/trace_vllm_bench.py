@@ -10,6 +10,7 @@ from __future__ import annotations
 
 import atexit
 import json
+import os
 import sys
 import time
 
@@ -44,6 +45,8 @@ _init = aiohttp.ClientSession.__init__
 
 def _patched(self, *args, **kwargs):
     kwargs["trace_configs"] = [*kwargs.get("trace_configs", []), trace]
+    if "BT_NO_TRUST_ENV" in os.environ:  # experiment: skip the per-request netrc and proxy lookup
+        kwargs["trust_env"] = False
     _init(self, *args, **kwargs)
 
 
