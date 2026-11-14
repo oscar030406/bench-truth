@@ -50,6 +50,13 @@ async def run(url: str, concurrency: int, requests: int) -> None:
     ttft = [m["first"] - m["sent"] for m in measured]
     before = [truth[m["id"]]["arrived"] - m["sent"] for m in measured]
     after = [truth[m["id"]]["sent"][0] for m in measured]
+    later = before[concurrency:]  # requests that did not start in the first burst
+    if later:
+        print(
+            f"c={concurrency} before handler: first burst "
+            f"{statistics.mean(before[:concurrency]) * 1000:.2f} ms, later "
+            f"{statistics.mean(later) * 1000:.2f} ms"
+        )
     print(
         f"c={concurrency} client ttft {statistics.mean(ttft) * 1000:.2f} ms = "
         f"before handler {statistics.mean(before) * 1000:.2f} + "
