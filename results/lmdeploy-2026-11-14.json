@@ -1,0 +1,103 @@
+{
+  "date": "2026-11-14",
+  "tool": "LMDeploy benchmark/profile_restful_api.py at fa67a6b (blob 2151bee), stock and with one shared session",
+  "server": "server-rs 0.2.0: --scenario fast --itl 0.02 --word the; cores 0-3",
+  "client": "cores 4-11; --backend vllm --dataset-name random --random-input-len 8 --random-output-len 256 --random-range-ratio 1 --num-prompts 20*rate --request-rate <rate> --seed 1",
+  "machine": "WSL2 Ubuntu 24.04 on Windows 11; client and server on one machine; aiohttp 3.14.5, Python 3.12.3",
+  "notes": {
+    "load": "Poisson arrivals; profile_restful_api has no concurrency limit, so the rate sets the requests in flight",
+    "reported_mean_ttft_ms": "mean_ttft_ms in the output file, all requests",
+    "true_ttft_ms": "server time from handler start to the first chunk, mean over the benchmark requests",
+    "shared": "the stock script, changed to open one aiohttp ClientSession for the whole run"
+  },
+  "runs": [
+    {
+      "version": "fa67a6b",
+      "round": 1,
+      "request_rate": 12.4,
+      "requests": 248,
+      "in_flight_mean": 50.42054260383403,
+      "in_flight_peak": 75,
+      "true_ttft_ms": 51.01529154838663,
+      "reported_mean_ttft_ms": 51.608563556451564,
+      "reported_mean_itl_ms": 20.000146152071476
+    },
+    {
+      "version": "fa67a6b with one shared ClientSession",
+      "round": 1,
+      "request_rate": 12.4,
+      "requests": 248,
+      "in_flight_mean": 50.42633012616563,
+      "in_flight_peak": 75,
+      "true_ttft_ms": 51.03894112096796,
+      "reported_mean_ttft_ms": 51.461563661290704,
+      "reported_mean_itl_ms": 20.000126216208088
+    },
+    {
+      "version": "fa67a6b",
+      "round": 1,
+      "request_rate": 50.0,
+      "requests": 1000,
+      "in_flight_mean": 201.85270293989262,
+      "in_flight_peak": 268,
+      "true_ttft_ms": 51.01224414599892,
+      "reported_mean_ttft_ms": 51.816633282999135,
+      "reported_mean_itl_ms": 20.00035486916862
+    },
+    {
+      "version": "fa67a6b with one shared ClientSession",
+      "round": 1,
+      "request_rate": 50.0,
+      "requests": 1000,
+      "in_flight_mean": 201.77992282483564,
+      "in_flight_peak": 267,
+      "true_ttft_ms": 51.0258989489991,
+      "reported_mean_ttft_ms": 51.506755951999764,
+      "reported_mean_itl_ms": 20.000329033596085
+    },
+    {
+      "version": "fa67a6b",
+      "round": 2,
+      "request_rate": 12.4,
+      "requests": 248,
+      "in_flight_mean": 50.427156165780374,
+      "in_flight_peak": 75,
+      "true_ttft_ms": 51.02659227016021,
+      "reported_mean_ttft_ms": 51.591188862904495,
+      "reported_mean_itl_ms": 20.000129784614167
+    },
+    {
+      "version": "fa67a6b with one shared ClientSession",
+      "round": 2,
+      "request_rate": 12.4,
+      "requests": 248,
+      "in_flight_mean": 50.416838750061906,
+      "in_flight_peak": 75,
+      "true_ttft_ms": 51.01098991935355,
+      "reported_mean_ttft_ms": 51.41584540725872,
+      "reported_mean_itl_ms": 20.00035227171095
+    },
+    {
+      "version": "fa67a6b",
+      "round": 2,
+      "request_rate": 50.0,
+      "requests": 1000,
+      "in_flight_mean": 201.77573917104553,
+      "in_flight_peak": 267,
+      "true_ttft_ms": 51.02610507899993,
+      "reported_mean_ttft_ms": 51.75454408600075,
+      "reported_mean_itl_ms": 20.00021722592941
+    },
+    {
+      "version": "fa67a6b with one shared ClientSession",
+      "round": 2,
+      "request_rate": 50.0,
+      "requests": 1000,
+      "in_flight_mean": 201.89927100834964,
+      "in_flight_peak": 268,
+      "true_ttft_ms": 51.00857394699898,
+      "reported_mean_ttft_ms": 51.487027165000256,
+      "reported_mean_itl_ms": 20.000261902643135
+    }
+  ]
+}

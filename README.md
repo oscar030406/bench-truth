@@ -8,7 +8,7 @@ Benchmark clients such as `vllm bench serve`, guidellm, aiperf and inference-per
 
 ## First finding: `trust_env=True` adds up to 26 ms to every request
 
-`vllm bench serve` opens its aiohttp session with `trust_env=True`. With that setting, aiohttp looks up `~/.netrc` for every request in the default thread pool ([`client.py`](https://github.com/aio-libs/aiohttp/blob/master/aiohttp/client.py), the `run_in_executor(None, self._get_netrc_auth, ...)` call). Each request then waits for a worker thread and for the event loop before its headers go out. The wait grows with concurrency.
+`vllm bench serve` opens its aiohttp session with `trust_env=True`. With that setting, aiohttp 3.14.5 runs two lookups in the default thread pool for every request ([`client.py` lines 777-817](https://github.com/aio-libs/aiohttp/blob/v3.14.5/aiohttp/client.py#L777-L817)). The `run_in_executor(None, self._get_netrc_auth, ...)` call looks up `~/.netrc`, and the `asyncio.to_thread(get_env_proxy_for_url, url)` call looks up the proxy. aiohttp master skips the netrc lookup when the request already has an `Authorization` header, for example when the user sets `OPENAI_API_KEY`. The runs in this README set no API key. Each request then waits for worker threads and for the event loop before its headers go out. The wait grows with concurrency.
 
 Time from the client sending a request to the server's handler starting, with plain aiohttp 3.14.5 (`bench_truth.reference`), requests after the first burst, 20 ms between tokens:
 
@@ -20,7 +20,19 @@ Time from the client sending a request to the server's handler starting, with pl
 
 The same delay shows in `vllm bench serve` (vLLM `191e5d5`). At concurrency 256, the server's true TTFT is 51.0 ms. vllm bench reports 73.7 ms, 44% too high. With `trust_env` switched off, it reports 51.4 ms. Mean ITL is right in both cases.
 
-The aiohttp report is [aio-libs/aiohttp#14378](https://github.com/aio-libs/aiohttp/issues/14378). The fix for vLLM is in [vllm-project/vllm#67624](https://github.com/vllm-project/vllm/pull/67624): the benchmark trusts the environment only when a proxy applies to the target.
+The aiohttp report is [aio-libs/aiohttp#14378](https://github.com/aio-libs/aiohttp/issues/14378). [aio-libs/aiohttp#14380](https://github.com/aio-libs/aiohttp/pull/14380) proposes to read the netrc file once per session and to run the proxy lookup on the event loop. The fix for vLLM is in [vllm-project/vllm#67624](https://github.com/vllm-project/vllm/pull/67624): the benchmark trusts the environment only when a proxy applies to the target.
+
+## evalscope `perf`: the same `trust_env` delay
+
+evalscope's `AioHttpClient` also opens its session with `trust_env=True`. evalscope starts its TTFT clock before it calls `client_session.post`, so the two lookups count in its TTFT. The table gives evalscope's own `Avg TTFT` over all requests, in two runs before the fix and two runs with it, all on evalscope 1.15.0. The fix trusts the environment only when a proxy or a netrc entry applies, in [modelscope/evalscope#2088](https://github.com/modelscope/evalscope/pull/2088).
+
+| `--parallel` | True TTFT | Before | With the fix |
+|---|---|---|---|
+| 16 | 51.1 to 51.4 ms | 57.5, 56.5 ms | 51.9, 51.7 ms |
+| 64 | 51.1 ms | 64.4, 64.2 ms | 52.9, 53.4 ms |
+| 256 | 51.0 to 51.2 ms | 144.1, 135.7 ms | 66.5, 67.6 ms |
+
+With the fix, the mean over all requests at `--parallel 256` is still 15 to 17 ms too high. After the first burst, the gap is 11 to 13 ms instead. Of the gap over all requests, 7 ms passes before the request reaches the server. The other 8 to 10 ms is what remains after we subtract the true TTFT and that wait. On main, this remainder is 1 to 2 ms. So it grew with the fix, and we have not found the cause yet. The raw numbers are in [`results/evalscope-2026-11-14.json`](results/evalscope-2026-11-14.json).
 
 ## Other benchmark clients
 
@@ -54,6 +66,10 @@ SGLang's `bench_serving` opens a new aiohttp session for every request, so each 
 | 256 | 51.1 to 51.2 ms | 66.2, 66.8, 102.6 ms | 51.5, 51.5, 51.4 ms |
 
 The raw numbers are in [`results/sglang-2026-11-14.json`](results/sglang-2026-11-14.json). `bench_truth.reference --session-per-request` shows the same cost with plain aiohttp.
+
+## LMDeploy `profile_restful_api`: a small cost under Poisson arrivals
+
+LMDeploy's `benchmark/profile_restful_api.py` (`fa67a6b`) also opens a new aiohttp session for every request. It keeps aiohttp's default `trust_env=False`, so the lookups above do not apply. It sends requests as a Poisson process at `--request-rate`. It has no concurrency limit, so the rate sets how many requests are in flight. At 50 requests per second, with about 200 requests in flight, LMDeploy reports a mean TTFT 1.4% to 1.6% above the truth. With one shared session, the error is 0.9%. At 12.4 requests per second, with about 50 in flight, the errors are 1.1% to 1.2% and 0.8%. The gain is less than one percentage point, so we did not open a PR. The raw numbers are in [`results/lmdeploy-2026-11-14.json`](results/lmdeploy-2026-11-14.json).
 
 ## How it works
 
