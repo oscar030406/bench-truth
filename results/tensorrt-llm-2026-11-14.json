@@ -1,0 +1,214 @@
+{
+ "date": "2026-11-14",
+ "tool": "TensorRT-LLM tensorrt_llm/serve/scripts/benchmark_serving.py at 178ec0b, copied without installing TensorRT-LLM",
+ "server": "server-rs 0.2.0: --scenario fast --itl 0.02 --word the; cores 0-3",
+ "client": "cores 4-11; --backend openai --dataset-name random --random-ids --random-input-len 8 --random-output-len 256 --random-range-ratio 0 --num-prompts 4*c --max-concurrency c --ignore-eos",
+ "machine": "WSL2 Ubuntu 24.04 on Windows 11; client and server on one machine; aiohttp 3.14.5, Python 3.12.3",
+ "notes": {
+  "stubs": "tensorrt_llm/__init__.py, tensorrt_llm._torch.configs and tensorrt_llm.inputs.utils are stubs, the same for all versions",
+  "reported_mean_ttft_ms": "mean_ttft_ms in the result file, all requests",
+  "mean_ttft_after_first_burst_ms": "mean of the per-request ttfts after the first max_concurrency requests",
+  "true_ttft_ms": "server time from handler start to the first chunk, mean over the benchmark requests",
+  "order": "versions alternated within each round"
+ },
+ "runs": [
+  {
+   "version": "178ec0b",
+   "round": 1,
+   "max_concurrency": 16,
+   "requests": 64,
+   "server_records": 64,
+   "true_ttft_ms": 51.52344857812419,
+   "reported_mean_ttft_ms": 56.10608639062487,
+   "mean_ttft_after_first_burst_ms": 56.049128958333284,
+   "reported_mean_itl_ms": 20.0012916307598
+  },
+  {
+   "version": "178ec0b with the change of NVIDIA/TensorRT-LLM#22283",
+   "round": 1,
+   "max_concurrency": 16,
+   "requests": 64,
+   "server_records": 64,
+   "true_ttft_ms": 51.31420796875075,
+   "reported_mean_ttft_ms": 52.76268367187398,
+   "mean_ttft_after_first_burst_ms": 52.74130779166608,
+   "reported_mean_itl_ms": 20.002686002757343
+  },
+  {
+   "version": "178ec0b with #22283 and force_close=False in the benchmark session (reference only)",
+   "round": 1,
+   "max_concurrency": 16,
+   "requests": 64,
+   "server_records": 64,
+   "true_ttft_ms": 51.11574234374805,
+   "reported_mean_ttft_ms": 51.84517471874939,
+   "mean_ttft_after_first_burst_ms": 51.453242854167414,
+   "reported_mean_itl_ms": 20.001649095465687
+  },
+  {
+   "version": "178ec0b",
+   "round": 1,
+   "max_concurrency": 64,
+   "requests": 256,
+   "server_records": 256,
+   "true_ttft_ms": 51.06516848437481,
+   "reported_mean_ttft_ms": 73.62275876953173,
+   "mean_ttft_after_first_burst_ms": 63.9198309062509,
+   "reported_mean_itl_ms": 20.008161108394606
+  },
+  {
+   "version": "178ec0b with the change of NVIDIA/TensorRT-LLM#22283",
+   "round": 1,
+   "max_concurrency": 64,
+   "requests": 256,
+   "server_records": 256,
+   "true_ttft_ms": 51.303947425780706,
+   "reported_mean_ttft_ms": 60.96983871093875,
+   "mean_ttft_after_first_burst_ms": 55.121047479168794,
+   "reported_mean_itl_ms": 20.005045576746323
+  },
+  {
+   "version": "178ec0b with #22283 and force_close=False in the benchmark session (reference only)",
+   "round": 1,
+   "max_concurrency": 64,
+   "requests": 256,
+   "server_records": 256,
+   "true_ttft_ms": 51.074507652343556,
+   "reported_mean_ttft_ms": 56.24887466406403,
+   "mean_ttft_after_first_burst_ms": 51.2795307968763,
+   "reported_mean_itl_ms": 20.001466917876837
+  },
+  {
+   "version": "178ec0b",
+   "round": 1,
+   "max_concurrency": 256,
+   "requests": 1024,
+   "server_records": 1024,
+   "true_ttft_ms": 51.06349916015607,
+   "reported_mean_ttft_ms": 114.54653952246063,
+   "mean_ttft_after_first_burst_ms": 96.3589182669268,
+   "reported_mean_itl_ms": 20.029763734317562
+  },
+  {
+   "version": "178ec0b with the change of NVIDIA/TensorRT-LLM#22283",
+   "round": 1,
+   "max_concurrency": 256,
+   "requests": 1024,
+   "server_records": 1024,
+   "true_ttft_ms": 51.13259511035112,
+   "reported_mean_ttft_ms": 77.86848057128987,
+   "mean_ttft_after_first_burst_ms": 66.08394901823071,
+   "reported_mean_itl_ms": 20.026403384064796
+  },
+  {
+   "version": "178ec0b with #22283 and force_close=False in the benchmark session (reference only)",
+   "round": 1,
+   "max_concurrency": 256,
+   "requests": 1024,
+   "server_records": 1024,
+   "true_ttft_ms": 51.048623918944934,
+   "reported_mean_ttft_ms": 62.34444883886764,
+   "mean_ttft_after_first_burst_ms": 51.34704916406285,
+   "reported_mean_itl_ms": 20.009034639816946
+  },
+  {
+   "version": "178ec0b",
+   "round": 2,
+   "max_concurrency": 16,
+   "requests": 64,
+   "server_records": 64,
+   "true_ttft_ms": 51.27135556250373,
+   "reported_mean_ttft_ms": 56.10599207812328,
+   "mean_ttft_after_first_burst_ms": 56.262648145831186,
+   "reported_mean_itl_ms": 20.00372932328433
+  },
+  {
+   "version": "178ec0b with the change of NVIDIA/TensorRT-LLM#22283",
+   "round": 2,
+   "max_concurrency": 16,
+   "requests": 64,
+   "server_records": 64,
+   "true_ttft_ms": 51.025141734376334,
+   "reported_mean_ttft_ms": 52.35149996874888,
+   "mean_ttft_after_first_burst_ms": 52.254315395831696,
+   "reported_mean_itl_ms": 20.001852685845588
+  },
+  {
+   "version": "178ec0b with #22283 and force_close=False in the benchmark session (reference only)",
+   "round": 2,
+   "max_concurrency": 16,
+   "requests": 64,
+   "server_records": 64,
+   "true_ttft_ms": 51.3157572187497,
+   "reported_mean_ttft_ms": 52.09005095312236,
+   "mean_ttft_after_first_burst_ms": 51.620108229164664,
+   "reported_mean_itl_ms": 19.999658830147048
+  },
+  {
+   "version": "178ec0b",
+   "round": 2,
+   "max_concurrency": 64,
+   "requests": 256,
+   "server_records": 256,
+   "true_ttft_ms": 51.177150089843025,
+   "reported_mean_ttft_ms": 68.51042419140629,
+   "mean_ttft_after_first_burst_ms": 63.37194983333353,
+   "reported_mean_itl_ms": 20.007429285508575
+  },
+  {
+   "version": "178ec0b with the change of NVIDIA/TensorRT-LLM#22283",
+   "round": 2,
+   "max_concurrency": 64,
+   "requests": 256,
+   "server_records": 256,
+   "true_ttft_ms": 51.10313627734375,
+   "reported_mean_ttft_ms": 58.71622059765613,
+   "mean_ttft_after_first_burst_ms": 55.20138500520785,
+   "reported_mean_itl_ms": 20.006616071109057
+  },
+  {
+   "version": "178ec0b with #22283 and force_close=False in the benchmark session (reference only)",
+   "round": 2,
+   "max_concurrency": 64,
+   "requests": 256,
+   "server_records": 256,
+   "true_ttft_ms": 51.11362673437636,
+   "reported_mean_ttft_ms": 58.33073524609333,
+   "mean_ttft_after_first_burst_ms": 51.3019303229146,
+   "reported_mean_itl_ms": 20.002328542310046
+  },
+  {
+   "version": "178ec0b",
+   "round": 2,
+   "max_concurrency": 256,
+   "requests": 1024,
+   "server_records": 1024,
+   "true_ttft_ms": 51.19629371972639,
+   "reported_mean_ttft_ms": 114.10601446875151,
+   "mean_ttft_after_first_burst_ms": 96.04739471745013,
+   "reported_mean_itl_ms": 20.02900457447917
+  },
+  {
+   "version": "178ec0b with the change of NVIDIA/TensorRT-LLM#22283",
+   "round": 2,
+   "max_concurrency": 256,
+   "requests": 1024,
+   "server_records": 1024,
+   "true_ttft_ms": 51.15744722070437,
+   "reported_mean_ttft_ms": 75.60296917382881,
+   "mean_ttft_after_first_burst_ms": 65.6486276054696,
+   "reported_mean_itl_ms": 20.023326952493097
+  },
+  {
+   "version": "178ec0b with #22283 and force_close=False in the benchmark session (reference only)",
+   "round": 2,
+   "max_concurrency": 256,
+   "requests": 1024,
+   "server_records": 1024,
+   "true_ttft_ms": 51.09800672558518,
+   "reported_mean_ttft_ms": 63.392938163084665,
+   "mean_ttft_after_first_burst_ms": 51.38622289843668,
+   "reported_mean_itl_ms": 20.008952187254906
+  }
+ ]
+}

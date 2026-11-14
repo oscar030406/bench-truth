@@ -34,6 +34,18 @@ evalscope's `AioHttpClient` also opens its session with `trust_env=True`. evalsc
 
 With the fix, the mean over all requests at `--parallel 256` is still 15 to 17 ms too high. After the first burst, the gap is 11 to 13 ms instead. Of the gap over all requests, 7 ms passes before the request reaches the server. The other 8 to 10 ms is what remains after we subtract the true TTFT and that wait. On main, this remainder is 1 to 2 ms. So it grew with the fix, and we have not found the cause yet. The raw numbers are in [`results/evalscope-2026-11-14.json`](results/evalscope-2026-11-14.json).
 
+## TensorRT-LLM `benchmark_serving`: `trust_env` and `force_close`
+
+TensorRT-LLM's `tensorrt_llm/serve/scripts/benchmark_serving.py` (`178ec0b`) also opens its session with `trust_env=True`, and it starts the TTFT clock before `session.post`. The session also sets `force_close=True`, so every request opens a new connection after the clock starts. We ran a copy of `tensorrt_llm/serve/scripts` without installing TensorRT-LLM, with stubs for three modules that the random dataset does not use. The table gives the benchmark's own `Mean TTFT` over all requests, in two runs per version. The fix keeps `trust_env=True` only when a proxy or a netrc entry applies, in [NVIDIA/TensorRT-LLM#22283](https://github.com/NVIDIA/TensorRT-LLM/pull/22283).
+
+| `--max-concurrency` | True TTFT | Before | With the fix | Fix and `force_close=False` |
+|---|---|---|---|---|
+| 16 | 51.0 to 51.5 ms | 56.1, 56.1 ms | 52.8, 52.4 ms | 51.8, 52.1 ms |
+| 64 | 51.1 to 51.3 ms | 73.6, 68.5 ms | 61.0, 58.7 ms | 56.2, 58.3 ms |
+| 256 | 51.0 to 51.2 ms | 114.5, 114.1 ms | 77.9, 75.6 ms | 62.3, 63.4 ms |
+
+The last column shows what `force_close` costs. TensorRT-LLM added `force_close=True` in [NVIDIA/TensorRT-LLM#5815](https://github.com/NVIDIA/TensorRT-LLM/pull/5815), so that the client does not reuse closed connections, and #22283 does not change it. After the first burst at `--max-concurrency 256`, the mean TTFT is 66.1 and 65.6 ms with the fix, and 51.3 and 51.4 ms with `force_close=False`. The raw numbers are in [`results/tensorrt-llm-2026-11-14.json`](results/tensorrt-llm-2026-11-14.json).
+
 ## Other benchmark clients
 
 We ran guidellm, aiperf and inference-perf against the Rust server with `--scenario fast --itl 0.02 --word the`. Each run used 4 x concurrency requests with 256 output tokens. The TTFT columns are means over the requests after the first burst. The true TTFT is the server's time from handler start to the first chunk. ITL error compares the client's mean ITL with the server's mean time between chunks. The raw numbers are in [`results/tools-2026-11-14.json`](results/tools-2026-11-14.json).
