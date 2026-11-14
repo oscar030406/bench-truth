@@ -120,7 +120,15 @@ async fn main() {
     let flag = |name: &str, default: &str| {
         args.iter().position(|a| a == name).map_or(default.to_string(), |i| args[i + 1].clone())
     };
-    let state = AppState { scenario: scenario(&flag("--scenario", "uniform")), records: Arc::default() };
+    let mut chosen = scenario(&flag("--scenario", "uniform"));
+    // Optional overrides, so a sweep can vary one timing at a time.
+    if args.iter().any(|a| a == "--itl") {
+        chosen.itl = flag("--itl", "").parse().expect("--itl takes seconds");
+    }
+    if args.iter().any(|a| a == "--tokens") {
+        chosen.tokens = flag("--tokens", "").parse().expect("--tokens takes a count");
+    }
+    let state = AppState { scenario: chosen, records: Arc::default() };
     let app = Router::new()
         .route("/v1/completions", post(stream))
         .route("/v1/chat/completions", post(stream))
