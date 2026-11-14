@@ -30,6 +30,7 @@ SCENARIOS = {
     "uniform": Scenario(ttft=0.05, itl=0.02, tokens=64),
     "slow_first": Scenario(ttft=0.5, itl=0.01, tokens=64),
     "usage_eos": Scenario(ttft=0.05, itl=0.02, tokens=64, usage_counts_eos=True),
+    "fast": Scenario(ttft=0.05, itl=0.005, tokens=256),
 }
 
 
@@ -53,6 +54,7 @@ class Server:
 
     async def stream(self, request: web.Request) -> web.StreamResponse:
         arrived = time.perf_counter()
+        rid = request.headers.get("x-bt-id")
         kind = "chat" if request.path.endswith("chat/completions") else "completions"
         body = await request.json()
         s = self.scenario
@@ -70,7 +72,7 @@ class Server:
         await resp.write(_chunk(kind, None, usage))
         await resp.write(b"data: [DONE]\n\n")
         await resp.write_eof()
-        self.records.append({"tokens": n, "sent": sent})
+        self.records.append({"id": rid, "arrived": arrived, "tokens": n, "sent": sent})
         return resp
 
     async def truth(self, request: web.Request) -> web.Response:
