@@ -12,6 +12,8 @@ from __future__ import annotations
 
 import argparse
 import asyncio
+import json
+import os
 import statistics
 import time
 
@@ -26,8 +28,10 @@ async def one(session: aiohttp.ClientSession, url: str, rid: str) -> dict:
         f"{url}/v1/completions", json=payload, headers={"x-bt-id": rid}
     ) as resp:
         async for line in resp.content:
-            if first is None and line.startswith(b"data: {") and b'"text": " ' in line:
-                first = time.perf_counter()
+            if first is None and line.startswith(b"data: {"):
+                choices = json.loads(line[6:])["choices"]
+                if choices and choices[0]["text"]:
+                    first = time.perf_counter()
     return {"id": rid, "sent": sent, "first": first}
 
 
@@ -38,7 +42,7 @@ async def run(url: str, concurrency: int, requests: int) -> None:
 
         async def bounded(i: int) -> dict:
             async with limit:
-                return await one(session, url, str(i))
+                return await one(session, url, f"{os.getpid()}-{i}")
 
         measured = await asyncio.gather(*(bounded(i) for i in range(requests)))
         async with session.get(f"{url}/truth") as resp:
