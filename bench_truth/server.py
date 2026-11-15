@@ -111,8 +111,8 @@ class Server:
         return app
 
 
-def main() -> None:
-    p = argparse.ArgumentParser()
+def main(prog: str | None = None) -> None:
+    p = argparse.ArgumentParser(prog=prog)
     p.add_argument("--scenario", choices=sorted(SCENARIOS), default="uniform")
     p.add_argument("--ttft", type=float, help="seconds to the first token, overrides the scenario")
     p.add_argument("--itl", type=float, help="seconds between tokens, overrides the scenario")

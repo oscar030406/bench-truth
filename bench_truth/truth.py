@@ -44,8 +44,8 @@ def _rounded(out: dict) -> dict:
     }
 
 
-def main() -> None:
-    p = argparse.ArgumentParser(description=__doc__.splitlines()[0])
+def main(prog: str | None = None) -> None:
+    p = argparse.ArgumentParser(prog=prog, description=__doc__.splitlines()[0])
     p.add_argument("--url", default="http://127.0.0.1:8100")
     p.add_argument(
         "--last",
