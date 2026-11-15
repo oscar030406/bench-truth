@@ -77,8 +77,8 @@ async def run(
     )
 
 
-def main() -> None:
-    p = argparse.ArgumentParser()
+def main(prog: str | None = None) -> None:
+    p = argparse.ArgumentParser(prog=prog)
     p.add_argument("--url", default="http://127.0.0.1:8100")
     p.add_argument("--concurrency", type=int, default=1)
     p.add_argument("--requests", type=int, default=0, help="default: 4 x concurrency")

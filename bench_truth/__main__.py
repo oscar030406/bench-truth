@@ -1,6 +1,6 @@
 """Run a bench-truth command: `bench-truth serve|truth|reference [options]`."""
 
-import runpy
+import importlib
 import sys
 
 COMMANDS = {
@@ -14,8 +14,7 @@ def main() -> None:
     if len(sys.argv) < 2 or sys.argv[1] not in COMMANDS:
         sys.exit(f"usage: bench-truth {{{','.join(COMMANDS)}}} [options]")
     command = sys.argv.pop(1)
-    sys.argv[0] = f"bench-truth {command}"
-    runpy.run_module(COMMANDS[command], run_name="__main__")
+    importlib.import_module(COMMANDS[command]).main(prog=f"bench-truth {command}")
 
 
 if __name__ == "__main__":
