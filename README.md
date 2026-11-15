@@ -20,7 +20,7 @@ Time from the client sending a request to the server's handler starting, with pl
 
 The same delay shows in `vllm bench serve` (vLLM `191e5d5`). At concurrency 256, the server's true TTFT is 51.0 ms. vllm bench reports 73.7 ms, 44% too high. With `trust_env` switched off, it reports 51.4 ms. Mean ITL is right in both cases.
 
-The aiohttp report is [aio-libs/aiohttp#14378](https://github.com/aio-libs/aiohttp/issues/14378). [aio-libs/aiohttp#14380](https://github.com/aio-libs/aiohttp/pull/14380) proposes to read the netrc file once per session and to run the proxy lookup on the event loop. The fix for vLLM is in [vllm-project/vllm#67624](https://github.com/vllm-project/vllm/pull/67624): the benchmark trusts the environment only when a proxy applies to the target.
+The aiohttp report is [aio-libs/aiohttp#14378](https://github.com/aio-libs/aiohttp/issues/14378). [aio-libs/aiohttp#14380](https://github.com/aio-libs/aiohttp/pull/14380) proposes to read the netrc file once per session and to run the proxy lookup on the event loop. The fix for vLLM is in [vllm-project/vllm#67624](https://github.com/vllm-project/vllm/pull/67624): the benchmark trusts the environment only when a proxy or a netrc entry applies to the target.
 
 ## evalscope `perf`: the same `trust_env` delay
 
