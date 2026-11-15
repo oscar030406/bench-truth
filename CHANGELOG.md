@@ -4,6 +4,32 @@ This file lists the changes in each release. The format follows [Keep a Changelo
 
 ## [Unreleased]
 
+## [0.4.0] - 2026-11-16
+
+### Added
+
+- A request without `"stream": true` gets one JSON body when its last token is due, as the OpenAI API answers. Before, every request got a stream.
+- Both servers read `max_completion_tokens`, which chat clients send in place of `max_tokens`.
+- `GET /health` returns 200, as guidellm's backend check expects.
+- `--max-records` (default 100,000) limits the records that `/truth` keeps. The `x-bt-dropped` header counts the dropped ones, and `bench-truth truth` warns about them. Before, the records grew without limit.
+- Release files have build provenance attestations, which `gh attestation verify` checks.
+
+### Changed
+
+- The Rust server reads the arrival time before the request body, as the Python server does. Before, it counted the upload and parse time of the body as client time.
+- Both servers take request bodies up to 256 MiB. Before, the Python server refused bodies over 1 MiB and the Rust server bodies over 2 MiB.
+- The Rust server copies the records and writes `/truth` outside the lock, so streams that finish meanwhile do not wait.
+- The release workflow gives write access only to the job that publishes the release. Every action is pinned to a commit.
+
+### Fixed
+
+- Both servers treat a `max_tokens` that is not a positive integer as unset. Before, `0`, `-1`, `"2"` and `2.0` gave different results on the two servers, and some made a record with no send times.
+- `"stream_options": true` no longer cuts the Python stream before `[DONE]`.
+- A body that is not a JSON object gets 400 on both servers.
+- `bench-truth truth` exits with "no records" when `/truth` is empty, and prints `null` for ITL and time per output token when no response has two tokens. Before, both cases raised an exception.
+- Both servers refuse a negative or infinite `--ttft` or `--itl` and a `--tokens` of 0 at start. The Rust server prints a plain error when its port is in use. Before, it panicked.
+- The Python server no longer logs a traceback for each stream that the client closes early.
+
 ## [0.3.0] - 2026-11-15
 
 ### Added

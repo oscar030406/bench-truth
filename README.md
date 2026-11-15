@@ -60,9 +60,13 @@ The Python server is for low concurrency. For high concurrency, use the Rust ser
 For example, on x86-64 Linux:
 
 ```bash
-curl -sL https://github.com/oscar030406/bench-truth/releases/latest/download/bench-truth-server-x86_64-linux.tar.gz | tar xz
+curl -sLO https://github.com/oscar030406/bench-truth/releases/latest/download/bench-truth-server-x86_64-linux.tar.gz
+gh attestation verify bench-truth-server-x86_64-linux.tar.gz --repo oscar030406/bench-truth
+tar xzf bench-truth-server-x86_64-linux.tar.gz
 ./bench-truth-server --version
 ```
+
+`gh attestation verify` checks that the release workflow of this repository built the file. Releases from 0.4.0 on have these attestations.
 
 To build the server from source, install Rust 1.85 or later and run `cargo build --release --manifest-path server-rs/Cargo.toml`.
 
@@ -143,12 +147,19 @@ With `usage_eos`, `vllm bench serve` reports 1.6% more output tokens and 1.6% lo
 
 | Command | What it does | Options |
 |---|---|---|
-| `bench-truth-server` | Runs the Rust server. | `--scenario`, `--ttft`, `--itl`, `--tokens`, `--word`, `--host`, `--port` |
+| `bench-truth-server` | Runs the Rust server. | `--scenario`, `--ttft`, `--itl`, `--tokens`, `--word`, `--max-records`, `--host`, `--port` |
 | `bench-truth serve` | Runs the Python server. | The same options |
 | `bench-truth truth` | Reads `/truth` and prints the true TTFT, ITL and time per output token. | `--url`, `--last`, `--concurrency`, `--clear` |
 | `bench-truth reference` | Runs a minimal aiohttp client that splits its TTFT. | `--url`, `--concurrency`, `--requests`, `--trust-env`, `--session-per-request` |
 
-Both servers speak the OpenAI streaming API on `/v1/completions` and `/v1/chat/completions`. They send the final usage chunk only when the request sets `stream_options.include_usage`, as the OpenAI API does. `GET /truth` returns the records, and `DELETE /truth` deletes them.
+Both servers speak the OpenAI API on `/v1/completions` and `/v1/chat/completions`:
+
+- A request with `"stream": true` gets a stream. Any other request gets one JSON body when its last token is due, and its record has one send time.
+- `max_completion_tokens`, or else `max_tokens`, shortens the response. A value that is not a positive integer counts as unset.
+- The final usage chunk comes only when the request sets `stream_options.include_usage`, as in the OpenAI API.
+- A request body can be up to 256 MiB.
+
+`GET /truth` returns the records, and `DELETE /truth` deletes them. The servers keep the newest 100,000 records, or as many as `--max-records` sets. The `x-bt-dropped` header of `/truth` counts the older ones, and `bench-truth truth` warns when it is not 0. `GET /health` returns 200.
 
 ## How it works
 

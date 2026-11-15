@@ -9,7 +9,13 @@ import argparse
 import itertools
 import json
 import statistics
+import sys
 import urllib.request
+
+
+def _mean_ms(values: list[float]) -> float | None:
+    """None when no request has the value, e.g. ITL when every response has one token."""
+    return statistics.mean(values) * 1000 if values else None
 
 
 def summarise(records: list[dict]) -> dict:
@@ -20,9 +26,9 @@ def summarise(records: list[dict]) -> dict:
     ]
     return {
         "requests": len(records),
-        "mean_ttft_ms": statistics.mean(ttft) * 1000,
-        "mean_itl_ms": statistics.mean(itl) * 1000,
-        "mean_tpot_ms": statistics.mean(tpot) * 1000,
+        "mean_ttft_ms": _mean_ms(ttft),
+        "mean_itl_ms": _mean_ms(itl),
+        "mean_tpot_ms": _mean_ms(tpot),
         "output_tokens": sum(r["tokens"] for r in records),
     }
 
@@ -60,7 +66,12 @@ def main(prog: str | None = None) -> None:
     p.add_argument("--clear", action="store_true", help="then delete the records on the server")
     args = p.parse_args()
     with urllib.request.urlopen(f"{args.url}/truth") as resp:
+        dropped = int(resp.headers.get("x-bt-dropped") or 0)  # 0.3.0 servers send no header
         records = measured(json.load(resp), args.last)
+    if not records:
+        p.exit(1, f"no records at {args.url}/truth\n")
+    if dropped:
+        print(f"warning: the server dropped its {dropped} oldest records", file=sys.stderr)
     out = summarise(records)
     if args.concurrency:
         if len(records) <= args.concurrency:
