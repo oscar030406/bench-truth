@@ -7,7 +7,6 @@ import subprocess
 import sys
 import time
 
-import pytest
 from conftest import stream, truth
 
 # Slack for a loaded CI machine. Every chunk must leave after its planned time
@@ -26,15 +25,14 @@ def test_chunks_follow_the_schedule(start_server):
         assert planned - EARLY_S <= sent <= planned + LATE_S, (i, sent)
 
 
-def test_itl_override(start_server):
-    url = start_server("--scenario", "uniform", "--tokens", "4", "--itl", "0.04")
+def test_ttft_and_itl_overrides(start_server):
+    url = start_server("--scenario", "uniform", "--tokens", "4", "--ttft", "0.1", "--itl", "0.04")
     stream(url)
     (rec,) = truth(url)
     for i, sent in enumerate(rec["sent"]):
-        assert 0.05 + 0.04 * i - EARLY_S <= sent <= 0.05 + 0.04 * i + LATE_S, (i, sent)
+        assert 0.1 + 0.04 * i - EARLY_S <= sent <= 0.1 + 0.04 * i + LATE_S, (i, sent)
 
 
-@pytest.mark.skipif(sys.platform != "linux", reason="the clock pairing holds on Linux only")
 def test_arrival_is_on_the_client_monotonic_clock(start_server):
     url = start_server("--scenario", "uniform", "--tokens", "2")
     got = stream(url, rid="clock")
@@ -98,7 +96,7 @@ def test_truth_cli_drops_earlier_requests_and_splits_the_first_burst(start_serve
     url = start_server("--scenario", "uniform", "--tokens", "4")
     for rid in ("warmup", "a", "b", "c"):
         stream(url, rid=rid)
-    cli = [sys.executable, "-m", "bench_truth.truth", "--url", url, "--last", "3"]
+    cli = [sys.executable, "-m", "bench_truth", "truth", "--url", url, "--last", "3"]
     run = subprocess.run([*cli, "--concurrency", "1"], capture_output=True, text=True, check=True)
     out = json.loads(run.stdout)
     assert [out[k]["requests"] for k in ("all", "first_burst", "after_first_burst")] == [3, 1, 2]
@@ -107,3 +105,6 @@ def test_truth_cli_drops_earlier_requests_and_splits_the_first_burst(start_serve
     bad = subprocess.run([*cli, "--concurrency", "3"], capture_output=True, text=True)
     assert bad.returncode == 2
     assert "needs more than 3 requests" in bad.stderr
+    # --clear empties /truth for the next run.
+    subprocess.run([*cli, "--clear"], capture_output=True, check=True)
+    assert truth(url) == []

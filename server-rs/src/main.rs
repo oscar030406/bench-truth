@@ -1,8 +1,8 @@
 //! The bench-truth streaming server in Rust, fast enough that its own delay
 //! stays far below what a benchmark client adds. It speaks the same protocol
 //! as `bench_truth/server.py`: the same scenarios, the `x-bt-id` header, and
-//! `/truth` records with `arrived` on CLOCK_MONOTONIC (the clock Python's
-//! `time.perf_counter()` reads on Linux) and `sent` relative to `arrived`.
+//! `/truth` records with `arrived` on the clock that Python's
+//! `time.perf_counter()` reads, and `sent` relative to `arrived`.
 //!
 //!     bench-truth-server --scenario fast --port 8100
 
@@ -11,12 +11,13 @@ use std::time::Duration;
 
 use axum::body::Body;
 use axum::extract::State;
-use axum::http::{HeaderMap, Uri, header};
+use axum::http::{HeaderMap, StatusCode, Uri, header};
 use axum::response::{IntoResponse, Response};
 use axum::routing::{get, post};
 use axum::serve::ListenerExt;
 use axum::{Json, Router};
 use bytes::Bytes;
+use clap::{Parser, ValueEnum};
 use serde::Serialize;
 use serde_json::{Value, json};
 use tokio::time::{Instant, sleep_until};
@@ -29,15 +30,52 @@ struct Scenario {
     usage_counts_eos: bool,
 }
 
-fn scenario(name: &str) -> Scenario {
-    let s = |ttft, itl, tokens, eos| Scenario { ttft, itl, tokens, usage_counts_eos: eos };
-    match name {
-        "uniform" => s(0.05, 0.02, 64, false),
-        "slow_first" => s(0.5, 0.01, 64, false),
-        "usage_eos" => s(0.05, 0.02, 64, true),
-        "fast" => s(0.05, 0.005, 256, false),
-        other => panic!("unknown scenario {other}"),
+#[derive(Clone, Copy, ValueEnum)]
+#[value(rename_all = "snake_case")]
+enum Preset {
+    Uniform,
+    SlowFirst,
+    UsageEos,
+    Fast,
+}
+
+impl Preset {
+    fn scenario(self) -> Scenario {
+        let s = |ttft, itl, tokens, eos| Scenario { ttft, itl, tokens, usage_counts_eos: eos };
+        match self {
+            Preset::Uniform => s(0.05, 0.02, 64, false),
+            Preset::SlowFirst => s(0.5, 0.01, 64, false),
+            Preset::UsageEos => s(0.05, 0.02, 64, true),
+            Preset::Fast => s(0.05, 0.005, 256, false),
+        }
     }
+}
+
+/// A streaming server with known timings, for checking the numbers that LLM
+/// serving benchmarks report.
+#[derive(Parser)]
+#[command(version)]
+struct Args {
+    /// Timing preset. --ttft, --itl and --tokens override its values.
+    #[arg(long, value_enum, default_value_t = Preset::Uniform)]
+    scenario: Preset,
+    /// Seconds from a request's arrival to its first chunk.
+    #[arg(long)]
+    ttft: Option<f64>,
+    /// Seconds between later chunks.
+    #[arg(long)]
+    itl: Option<f64>,
+    /// Chunks per response.
+    #[arg(long)]
+    tokens: Option<usize>,
+    /// Send this word in every chunk instead of t{i}.
+    #[arg(long)]
+    word: Option<String>,
+    /// Address to listen on. Use 0.0.0.0 to accept clients on other machines.
+    #[arg(long, default_value = "127.0.0.1")]
+    host: String,
+    #[arg(long, default_value_t = 8100)]
+    port: u16,
 }
 
 #[derive(Serialize)]
@@ -57,11 +95,34 @@ struct AppState {
     records: Arc<Mutex<Vec<Record>>>,
 }
 
+/// Seconds on the clock that Python's `time.perf_counter()` reads on this
+/// platform, so that a client on the same machine can compare its send times
+/// with `arrived`.
+#[cfg(unix)]
 fn monotonic() -> f64 {
+    // CPython reads mach_absolute_time() on macOS. CLOCK_UPTIME_RAW is the same
+    // clock in nanoseconds. CLOCK_MONOTONIC there also counts time asleep.
+    #[cfg(target_vendor = "apple")]
+    const CLOCK: libc::clockid_t = libc::CLOCK_UPTIME_RAW;
+    #[cfg(not(target_vendor = "apple"))]
+    const CLOCK: libc::clockid_t = libc::CLOCK_MONOTONIC;
     let mut ts = libc::timespec { tv_sec: 0, tv_nsec: 0 };
     // SAFETY: clock_gettime writes into the timespec we pass and has no other effects.
-    unsafe { libc::clock_gettime(libc::CLOCK_MONOTONIC, &mut ts) };
+    unsafe { libc::clock_gettime(CLOCK, &mut ts) };
     ts.tv_sec as f64 + ts.tv_nsec as f64 * 1e-9
+}
+
+#[cfg(windows)]
+fn monotonic() -> f64 {
+    use windows_sys::Win32::System::Performance::{QueryPerformanceCounter, QueryPerformanceFrequency};
+    let (mut ticks, mut freq) = (0i64, 0i64);
+    // SAFETY: both calls write one integer into the pointer we pass, and they
+    // cannot fail on Windows XP and later.
+    unsafe {
+        QueryPerformanceCounter(&mut ticks);
+        QueryPerformanceFrequency(&mut freq);
+    }
+    ticks as f64 / freq as f64
 }
 
 fn chunk(chat: bool, text: Option<&str>, usage: Option<&Value>) -> Bytes {
@@ -119,34 +180,39 @@ async fn truth(State(state): State<AppState>) -> impl IntoResponse {
     Json(serde_json::to_value(&*state.records.lock().unwrap()).unwrap())
 }
 
+/// Forget the records, so that the next run starts with an empty /truth.
+async fn clear(State(state): State<AppState>) -> StatusCode {
+    state.records.lock().unwrap().clear();
+    StatusCode::NO_CONTENT
+}
+
 async fn models() -> impl IntoResponse {
     Json(json!({"object": "list", "data": [{"id": "bench-truth", "object": "model"}]}))
 }
 
 #[tokio::main]
 async fn main() {
-    let args: Vec<String> = std::env::args().collect();
-    let flag = |name: &str, default: &str| {
-        args.iter().position(|a| a == name).map_or(default.to_string(), |i| args[i + 1].clone())
-    };
-    let mut chosen = scenario(&flag("--scenario", "uniform"));
+    let args = Args::parse();
+    let mut chosen = args.scenario.scenario();
     // Optional overrides, so a sweep can vary one timing at a time.
-    if args.iter().any(|a| a == "--itl") {
-        chosen.itl = flag("--itl", "").parse().expect("--itl takes seconds");
+    chosen.ttft = args.ttft.unwrap_or(chosen.ttft);
+    chosen.itl = args.itl.unwrap_or(chosen.itl);
+    chosen.tokens = args.tokens.unwrap_or(chosen.tokens);
+    // Windows wakes timers every 15.6 ms by default, so chunks would leave up to
+    // 16 ms late. Ask for 1 ms timers for this process.
+    // SAFETY: timeBeginPeriod only sets the timer resolution of this process.
+    #[cfg(windows)]
+    unsafe {
+        windows_sys::Win32::Media::timeBeginPeriod(1);
     }
-    if args.iter().any(|a| a == "--tokens") {
-        chosen.tokens = flag("--tokens", "").parse().expect("--tokens takes a count");
-    }
-    let word = args.iter().any(|a| a == "--word").then(|| Arc::from(flag("--word", "")));
-    let state = AppState { scenario: chosen, word, records: Arc::default() };
+    let state = AppState { scenario: chosen, word: args.word.map(Arc::from), records: Arc::default() };
     let app = Router::new()
         .route("/v1/completions", post(stream))
         .route("/v1/chat/completions", post(stream))
         .route("/v1/models", get(models))
-        .route("/truth", get(truth))
+        .route("/truth", get(truth).delete(clear))
         .with_state(state);
-    let port = flag("--port", "8100").parse::<u16>().unwrap();
-    let listener = tokio::net::TcpListener::bind(("127.0.0.1", port)).await.unwrap().tap_io(|tcp| {
+    let listener = tokio::net::TcpListener::bind((args.host.as_str(), args.port)).await.unwrap().tap_io(|tcp| {
         // Send every chunk at once, as inference servers do. Without this, Nagle's
         // algorithm holds a chunk until the client acknowledges the previous one.
         if let Err(err) = tcp.set_nodelay(true) {

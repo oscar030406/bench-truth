@@ -11,6 +11,9 @@ license = "Apache-2.0"
 requires-python = ">=3.10"
 dependencies = ["aiohttp>=3.9"]
 
+[project.scripts]
+bench-truth = "bench_truth.__main__:main"
+
 [tool.hatch.build.targets.wheel]
 packages = ["bench_truth"]
 

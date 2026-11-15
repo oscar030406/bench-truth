@@ -11,4 +11,6 @@ cargo fmt --check --manifest-path server-rs/Cargo.toml
 cargo clippy --release --quiet --manifest-path server-rs/Cargo.toml -- -D warnings
 cargo build --release --quiet --manifest-path server-rs/Cargo.toml
 target="${CARGO_TARGET_DIR:-server-rs/target}"
-BT_SERVER_BIN="$target/release/bench-truth-server" uv run --frozen pytest -q tests
+exe=""
+[[ "$OSTYPE" == msys* || "$OSTYPE" == cygwin* ]] && exe=".exe"
+BT_SERVER_BIN="$target/release/bench-truth-server$exe" uv run --frozen pytest -q tests
