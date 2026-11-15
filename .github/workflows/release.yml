@@ -1,32 +1,71 @@
 name: release
 
+# A pull request that changes the server builds and tests every binary.
+# A v* tag also publishes them as a GitHub release.
 on:
   push:
     tags: ["v*"]
+  pull_request:
+    paths: [server-rs/**, .github/workflows/release.yml]
 
 permissions:
   contents: write
 
 jobs:
   server:
-    runs-on: ubuntu-24.04
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - { os: ubuntu-24.04, target: x86_64-unknown-linux-musl, name: x86_64-linux }
+          - { os: ubuntu-24.04-arm, target: aarch64-unknown-linux-musl, name: aarch64-linux }
+          - { os: macos-15-intel, target: x86_64-apple-darwin, name: x86_64-macos }
+          - { os: macos-15, target: aarch64-apple-darwin, name: aarch64-macos }
+          - { os: windows-2025, target: x86_64-pc-windows-msvc, name: x86_64-windows, exe: .exe }
+          - { os: windows-11-arm, target: aarch64-pc-windows-msvc, name: aarch64-windows, exe: .exe }
+    runs-on: ${{ matrix.os }}
+    defaults:
+      run:
+        shell: bash
+    env:
+      BIN: server-rs/target/${{ matrix.target }}/release/bench-truth-server${{ matrix.exe }}
     steps:
       - uses: actions/checkout@v7
       - uses: astral-sh/setup-uv@v10.3.3
-      - name: Build a static server binary
+      - name: Build the server
         run: |
-          rustup target add x86_64-unknown-linux-musl
-          cargo build --release --locked --target x86_64-unknown-linux-musl --manifest-path server-rs/Cargo.toml
+          rustup target add ${{ matrix.target }}
+          cargo build --release --locked --target ${{ matrix.target }} --manifest-path server-rs/Cargo.toml
       - name: Run the protocol tests against that binary
-        run: BT_SERVER_BIN=server-rs/target/x86_64-unknown-linux-musl/release/bench-truth-server uv run --frozen pytest -q tests -k rust
+        run: BT_SERVER_BIN="$BIN" uv run --frozen pytest -q tests -k rust
       - name: Package
         run: |
           mkdir dist
-          tar -C server-rs/target/x86_64-unknown-linux-musl/release -czf dist/bench-truth-server-x86_64-linux.tar.gz bench-truth-server
-          (cd dist && sha256sum bench-truth-server-x86_64-linux.tar.gz > bench-truth-server-x86_64-linux.tar.gz.sha256)
+          if [[ -n "${{ matrix.exe }}" ]]; then
+            uv run --frozen python -m zipfile -c dist/bench-truth-server-${{ matrix.name }}.zip "$BIN"
+          else
+            tar -C "$(dirname "$BIN")" -czf dist/bench-truth-server-${{ matrix.name }}.tar.gz bench-truth-server
+          fi
+      - uses: actions/upload-artifact@v7
+        with:
+          name: ${{ matrix.name }}
+          path: dist/*
+
+  release:
+    needs: server
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/download-artifact@v8
+        with:
+          path: dist
+          merge-multiple: true
+      - name: Checksums
+        run: cd dist && for f in *; do sha256sum "$f" > "$f.sha256"; done && cat *.sha256
       - name: Release notes from CHANGELOG.md
         run: awk -v h="## [${GITHUB_REF_NAME#v}]" 'index($0, h) == 1 {p = 1; next} index($0, "## [") == 1 {p = 0} p' CHANGELOG.md > notes.md
       - name: Create the release
+        if: startsWith(github.ref, 'refs/tags/v')
         env:
           GH_TOKEN: ${{ github.token }}
         run: gh release create "$GITHUB_REF_NAME" --title "bench-truth $GITHUB_REF_NAME" --notes-file notes.md dist/*
