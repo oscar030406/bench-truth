@@ -181,7 +181,7 @@ sequenceDiagram
 - A record holds the `x-bt-id` header if the client sent one, the arrival time `arrived`, the token count, and the send time of each chunk after `arrived`.
 - Both servers record each chunk just before they hand it over for writing. So no client can read a chunk before its record.
 - `arrived` is on the clock of Python's `time.perf_counter()`: `CLOCK_MONOTONIC` on Linux, `mach_absolute_time` on macOS and `QueryPerformanceCounter` on Windows. So a client on the same machine can compare its own timestamps with the records. `bench-truth reference` uses this to split its TTFT.
-- A packet capture checks the records of the Rust server. At every concurrency from 16 to 1024, the median chunk left 0.002 ms after its record ([docs/accuracy.md](docs/accuracy.md)).
+- A packet capture checks the records of the Rust server. With version 0.4.0, at every concurrency from 16 to 1024, the median chunk left 0.005 ms after its record ([docs/accuracy.md](docs/accuracy.md)).
 
 ## Tests
 

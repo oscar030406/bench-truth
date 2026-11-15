@@ -1,0 +1,106 @@
+{
+ "date": "2026-11-16",
+ "what": "Delay from the server's /truth records to the packets in a tcpdump capture of the same run",
+ "client": "bench_truth.reference, 4 x concurrency requests, cores 4-11",
+ "server_args": "--scenario fast --itl 0.02 --tokens 64, cores 0-3",
+ "capture": "tcpdump -i lo -s 0 -B 131072 tcp port 8100; 0 packets dropped in every run",
+ "check": "scripts/wire_check.py",
+ "machine": "WSL2 Ubuntu 24.04 on Windows 11",
+ "notes": {
+  "request_end_to_handler_ms": "from the last request packet to `arrived`",
+  "recorded_send_to_wire_ms": "from `arrived + sent[i]` to the first packet with chunk i",
+  "clock_offset_drift_ms": "change of time.time() - time.monotonic() over the run; runs with a step were repeated",
+  "p99_ms": "statistics.quantiles(n=100, method='inclusive')[98]",
+  "server_ttft_mean_ms": "mean time from handler start to the first chunk, from the run's /truth records (added 2026-11-15)"
+ },
+ "runs": [
+  {
+   "server": "rust 0.4.0",
+   "source": "1bd9530 with the version set to 0.4.0",
+   "binary_sha256": "1c61d319525daa655a711b092ad9306a96b1029de9c6859f60959483efe39f81",
+   "concurrency": 16,
+   "requests": 64,
+   "unmatched": 0,
+   "clock_offset_drift_ms": 0.0,
+   "request_end_to_handler_ms": {
+    "min_ms": 0.0064373016357421875,
+    "median_ms": 0.030159950256347656,
+    "p99_ms": 0.19152164459228516,
+    "max_ms": 0.20503997802734375
+   },
+   "recorded_send_to_wire_ms": {
+    "min_ms": 0.002384185791015625,
+    "median_ms": 0.005245208740234375,
+    "p99_ms": 0.07581710815429688,
+    "max_ms": 0.32782554626464844
+   },
+   "server_ttft_mean_ms": 51.02858147692233
+  },
+  {
+   "server": "rust 0.4.0",
+   "source": "1bd9530 with the version set to 0.4.0",
+   "binary_sha256": "1c61d319525daa655a711b092ad9306a96b1029de9c6859f60959483efe39f81",
+   "concurrency": 64,
+   "requests": 256,
+   "unmatched": 0,
+   "clock_offset_drift_ms": 0.0002384185791015625,
+   "request_end_to_handler_ms": {
+    "min_ms": 0.00667572021484375,
+    "median_ms": 0.03325939178466797,
+    "p99_ms": 0.11608600616455078,
+    "max_ms": 0.14710426330566406
+   },
+   "recorded_send_to_wire_ms": {
+    "min_ms": 0.0021457672119140625,
+    "median_ms": 0.0050067901611328125,
+    "p99_ms": 0.056743621826171875,
+    "max_ms": 0.16999244689941406
+   },
+   "server_ttft_mean_ms": 51.070387229571914
+  },
+  {
+   "server": "rust 0.4.0",
+   "source": "1bd9530 with the version set to 0.4.0",
+   "binary_sha256": "1c61d319525daa655a711b092ad9306a96b1029de9c6859f60959483efe39f81",
+   "concurrency": 256,
+   "requests": 1024,
+   "unmatched": 0,
+   "clock_offset_drift_ms": 0.0002384185791015625,
+   "request_end_to_handler_ms": {
+    "min_ms": 0.003814697265625,
+    "median_ms": 0.024318695068359375,
+    "p99_ms": 1.7547798156738281,
+    "max_ms": 2.3043155670166016
+   },
+   "recorded_send_to_wire_ms": {
+    "min_ms": 0.002384185791015625,
+    "median_ms": 0.00476837158203125,
+    "p99_ms": 0.03552436828613281,
+    "max_ms": 0.3895759582519531
+   },
+   "server_ttft_mean_ms": 51.064607999999964
+  },
+  {
+   "server": "rust 0.4.0",
+   "source": "1bd9530 with the version set to 0.4.0",
+   "binary_sha256": "1c61d319525daa655a711b092ad9306a96b1029de9c6859f60959483efe39f81",
+   "concurrency": 1024,
+   "requests": 4096,
+   "unmatched": 0,
+   "clock_offset_drift_ms": 0.0002384185791015625,
+   "request_end_to_handler_ms": {
+    "min_ms": 0.005245208740234375,
+    "median_ms": 0.02574920654296875,
+    "p99_ms": 0.21058320999145508,
+    "max_ms": 22.348403930664062
+   },
+   "recorded_send_to_wire_ms": {
+    "min_ms": 0.0021457672119140625,
+    "median_ms": 0.00476837158203125,
+    "p99_ms": 0.027894973754882812,
+    "max_ms": 4.261970520019531
+   },
+   "server_ttft_mean_ms": 51.111005708323134
+  }
+ ]
+}

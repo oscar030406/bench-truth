@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "bench-truth"
-version = "0.3.0"
+version = "0.4.0"
 description = "A streaming server with known timings, to measure how accurate LLM serving benchmarks are"
 readme = "README.md"
 license = "Apache-2.0"

@@ -13,6 +13,7 @@ This file lists the changes in each release. The format follows [Keep a Changelo
 - `GET /health` returns 200, as guidellm's backend check expects.
 - `--max-records` (default 100,000) limits the records that `/truth` keeps. The `x-bt-dropped` header counts the dropped ones, and `bench-truth truth` warns about them. Before, the records grew without limit.
 - Release files have build provenance attestations, which `gh attestation verify` checks.
+- `results/wire-2026-11-16.json` repeats the packet capture check on 0.4.0. The median chunk leaves 0.005 ms after its record at every concurrency from 16 to 1024.
 
 ### Changed
 
