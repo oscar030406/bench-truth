@@ -68,4 +68,9 @@ jobs:
         if: startsWith(github.ref, 'refs/tags/v')
         env:
           GH_TOKEN: ${{ github.token }}
-        run: gh release create "$GITHUB_REF_NAME" --title "bench-truth $GITHUB_REF_NAME" --notes-file notes.md dist/*
+        run: |
+          # The tag must match both versions, and CHANGELOG.md must have its section.
+          grep -qx "version = \"${GITHUB_REF_NAME#v}\"" server-rs/Cargo.toml
+          grep -qx "version = \"${GITHUB_REF_NAME#v}\"" pyproject.toml
+          test -s notes.md
+          gh release create "$GITHUB_REF_NAME" --title "bench-truth $GITHUB_REF_NAME" --notes-file notes.md dist/*
