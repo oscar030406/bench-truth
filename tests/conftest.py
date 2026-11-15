@@ -14,6 +14,7 @@ import sys
 import time
 import urllib.request
 from dataclasses import dataclass, field
+from pathlib import Path
 
 import aiohttp
 import pytest
@@ -38,7 +39,8 @@ def start_server(request):
             exe = os.environ.get("BT_SERVER_BIN")
             if not exe:
                 pytest.skip("BT_SERVER_BIN is not set to the Rust server binary")
-            cmd = [exe, "--port", str(port), *args]
+            # Windows cannot start a relative path with forward slashes, as check.sh passes.
+            cmd = [str(Path(exe).resolve()), "--port", str(port), *args]
         procs.append(subprocess.Popen(cmd, stdout=subprocess.DEVNULL, stderr=subprocess.PIPE))
         url = f"http://127.0.0.1:{port}"
         deadline = time.monotonic() + 10

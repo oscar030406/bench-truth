@@ -3,6 +3,7 @@ __pycache__/
 .venv/
 .venvs/
 /results/raw/
+server-rs/target/
 
 # agent files stay local
 CLAUDE.md

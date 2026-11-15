@@ -4,11 +4,24 @@ on:
   push:
     branches: [main]
   pull_request:
+  workflow_dispatch:
 
 jobs:
   check:
-    runs-on: ubuntu-24.04
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-24.04, ubuntu-24.04-arm, macos-15, macos-15-intel, windows-2025, windows-11-arm]
+        python: ["3.14"]
+        include:
+          # The oldest Python that pyproject.toml allows. Before 3.13, asyncio on
+          # Windows reads a clock that ticks every 15.6 ms.
+          - { os: ubuntu-24.04, python: "3.10" }
+          - { os: windows-2025, python: "3.10" }
+    runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v7
       - uses: astral-sh/setup-uv@v10.3.3
+        with:
+          python-version: ${{ matrix.python }}
       - run: bash check.sh

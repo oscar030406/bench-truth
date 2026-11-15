@@ -7,6 +7,21 @@ This file lists the changes in each release. The format follows [Keep a Changelo
 ### Added
 
 - `bench_truth.truth --last N` keeps the last N requests by arrival time, to drop warmup and test requests. `--concurrency C` summarises the first C requests apart from the rest.
+- The `bench-truth` command. `bench-truth serve`, `bench-truth truth` and `bench-truth reference` run the three modules.
+- `bench-truth truth --clear` and `DELETE /truth` delete the records, so that the next run starts with an empty `/truth`.
+- Both servers take `--ttft` and `--host`.
+- CI runs every check on Linux, macOS and Windows, on x86-64 and arm64, with Python 3.14 and the oldest allowed Python, 3.10.
+
+### Changed
+
+- The Rust server reads its options with clap, so it has `--help` and `--version`.
+
+### Fixed
+
+- The Rust server builds on Windows. It read the clock with `clock_gettime`, which Windows does not have. Now it reads `QueryPerformanceCounter`, like Python's `time.perf_counter()`.
+- On macOS, the Rust server reads `CLOCK_UPTIME_RAW`, the clock of `time.perf_counter()`. It read `CLOCK_MONOTONIC`, which also counts the time the Mac was asleep, so `arrived` did not match the client's clock.
+- On Windows, both servers ask for 1 ms timers. With the default 15.6 ms timers, chunks left up to 16 ms late.
+- The Python server does not send chunks early. Before Python 3.13, asyncio on Windows woke up to 15 ms before the planned time.
 
 ## [0.2.0] - 2026-11-14
 

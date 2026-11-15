@@ -1,6 +1,6 @@
 """Summarise what the server actually sent, as the numbers a benchmark reports.
 
-python -m bench_truth.truth --url http://127.0.0.1:8100 --last 1024 --concurrency 256
+python -m bench_truth.truth --url http://127.0.0.1:8100 --last 1024 --concurrency 256 --clear
 """
 
 from __future__ import annotations
@@ -49,6 +49,7 @@ def main() -> None:
         type=int,
         help="also summarise the first CONCURRENCY requests apart from the rest",
     )
+    p.add_argument("--clear", action="store_true", help="then delete the records on the server")
     args = p.parse_args()
     with urllib.request.urlopen(f"{args.url}/truth") as resp:
         records = measured(json.load(resp), args.last)
@@ -62,6 +63,8 @@ def main() -> None:
             "after_first_burst": summarise(records[args.concurrency :]),
         }
     print(json.dumps(out))
+    if args.clear:
+        urllib.request.urlopen(urllib.request.Request(f"{args.url}/truth", method="DELETE")).close()
 
 
 if __name__ == "__main__":
