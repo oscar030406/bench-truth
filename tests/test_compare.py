@@ -6,7 +6,7 @@ import pytest
 
 from bench_truth.compare import split_ttft
 from bench_truth.tools import Request, late_requests
-from bench_truth.truth import summarise
+from bench_truth.truth import measured, summarise
 
 
 def _rec(arrived: float, sent: list[float]) -> dict:
@@ -53,3 +53,9 @@ def test_summarise():
     assert out["mean_itl_ms"] == pytest.approx(20.0)  # gaps 20, 30, 10
     assert out["mean_tpot_ms"] == pytest.approx(17.5)  # (50 / 2 + 10 / 1) / 2
     assert out["output_tokens"] == 5
+
+
+def test_measured_keeps_the_last_records_by_arrival():
+    records = [_rec(5.0, [0.3]), _rec(0.0, [0.9]), _rec(4.0, [0.2]), _rec(3.0, [0.1])]
+    assert [r["arrived"] for r in measured(records, last=2)] == [4.0, 5.0]
+    assert [r["arrived"] for r in measured(records)] == [0.0, 3.0, 4.0, 5.0]

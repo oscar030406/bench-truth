@@ -4,6 +4,10 @@ This file lists the changes in each release. The format follows [Keep a Changelo
 
 ## [Unreleased]
 
+### Added
+
+- `bench_truth.truth --last N` keeps the last N requests by arrival time, to drop warmup and test requests. `--concurrency C` summarises the first C requests apart from the rest.
+
 ## [0.2.0] - 2026-11-14
 
 ### Added

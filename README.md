@@ -152,7 +152,13 @@ taskset -c 4-11 python -m bench_truth.reference --concurrency 256 --trust-env
 
 Each run prints the client's TTFT, split into the time before the server's handler and the server's own time to the first token. The first line reports the first burst of requests apart from the rest. The first burst opens all its connections at once, and that cost belongs to start-up, not to the steady state.
 
-To check `vllm bench serve`, run it against the server with `--save-detailed`, save `/truth`, and compare with `bench_truth.compare.split_ttft`.
+To check another client, start a new server, run the client against it, and then print what the server sent:
+
+```bash
+python -m bench_truth.truth --last 1024 --concurrency 256
+```
+
+`--last` keeps the last 1024 requests by arrival time. This drops the warmup and test requests that many clients send first. `--concurrency` summarises the first burst apart from the rest. Compare `mean_ttft_ms` and `mean_itl_ms` with the numbers that the client reports.
 
 ## Scenarios
 

@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import json
+import subprocess
 import sys
 import time
 
@@ -90,3 +92,18 @@ def test_cancelled_stream_leaves_no_record(start_server):
     stream(url, rid="done", keep=None)
     time.sleep(0.1)
     assert [r["id"] for r in truth(url)] == ["done"]
+
+
+def test_truth_cli_drops_earlier_requests_and_splits_the_first_burst(start_server):
+    url = start_server("--scenario", "uniform", "--tokens", "4")
+    for rid in ("warmup", "a", "b", "c"):
+        stream(url, rid=rid)
+    cli = [sys.executable, "-m", "bench_truth.truth", "--url", url, "--last", "3"]
+    run = subprocess.run([*cli, "--concurrency", "1"], capture_output=True, text=True, check=True)
+    out = json.loads(run.stdout)
+    assert [out[k]["requests"] for k in ("all", "first_burst", "after_first_burst")] == [3, 1, 2]
+    assert out["all"]["output_tokens"] == 12
+    # A first burst as large as the run leaves nothing after it.
+    bad = subprocess.run([*cli, "--concurrency", "3"], capture_output=True, text=True)
+    assert bad.returncode == 2
+    assert "needs more than 3 requests" in bad.stderr
