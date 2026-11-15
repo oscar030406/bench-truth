@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import asyncio
 import json
+import socket
 import statistics
 import subprocess
 import sys
@@ -128,8 +129,10 @@ async def _receive_all(url: str, n: int) -> dict[str, list[float]]:
 
 
 def test_chunks_reach_concurrent_clients_soon_after_their_record(start_server):
-    # The 0.1.0 Rust server recorded each chunk on time, then Nagle's algorithm
-    # held it for about 40 ms. The schedule tests could not see that.
+    # The schedule tests compare /truth with the plan, so a server that holds
+    # chunks after their record passes them. This test fails it. Nagle's
+    # algorithm held the chunks of 0.1.0 only at about 1024 clients
+    # (docs/accuracy.md), which is too many for CI, so this test does not catch it.
     url = start_server("--scenario", "uniform", "--tokens", "16")
     seen = asyncio.run(_receive_all(url, 32))
     delays = sorted(
@@ -141,3 +144,15 @@ def test_chunks_reach_concurrent_clients_soon_after_their_record(start_server):
     assert delays[0] >= 0  # no client reads a chunk before its record
     assert statistics.median(delays) < 0.005, delays[len(delays) // 2]
     assert delays[int(len(delays) * 0.95)] < 0.020, delays[-20:]
+
+
+def test_request_without_stream_that_the_client_leaves_has_no_record(start_server):
+    url = start_server("--scenario", "uniform", "--tokens", "4", "--ttft", "0.3")
+    port = int(url.rsplit(":", 1)[1])
+    body = b'{"prompt": "hi"}'
+    head = "POST /v1/completions HTTP/1.1\r\nHost: x\r\nContent-Type: application/json\r\n"
+    with socket.create_connection(("127.0.0.1", port)) as s:
+        s.sendall(f"{head}Content-Length: {len(body)}\r\n\r\n".encode() + body)
+        time.sleep(0.1)  # leave before the response is due
+    time.sleep(0.6)
+    assert truth(url) == []

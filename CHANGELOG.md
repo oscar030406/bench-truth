@@ -26,7 +26,9 @@ This file lists the changes in each release. The format follows [Keep a Changelo
 
 - Both servers treat a `max_tokens` that is not a positive integer as unset. Before, `0`, `-1`, `"2"` and `2.0` gave different results on the two servers, and some made a record with no send times.
 - `"stream_options": true` no longer cuts the Python stream before `[DONE]`.
-- A body that is not a JSON object gets 400 on both servers.
+- A body that is not JSON, or not a JSON object, gets 400 on both servers. Before, invalid JSON gave 500 on the Python server.
+- The Rust server accepts a body sent with any `Content-Type`, as the Python server does. Before, it answered `text/plain` with 415.
+- The Python server keeps no record of a request without `"stream": true` when the client leaves before the response, as the Rust server does.
 - `bench-truth truth` exits with "no records" when `/truth` is empty, and prints `null` for ITL and time per output token when no response has two tokens. Before, both cases raised an exception.
 - Both servers refuse a negative or infinite `--ttft` or `--itl` and a `--tokens` of 0 at start. The Rust server prints a plain error when its port is in use. Before, it panicked.
 - The Python server no longer logs a traceback for each stream that the client closes early.
@@ -92,7 +94,8 @@ This file lists the changes in each release. The format follows [Keep a Changelo
 - Scripts that run `vllm bench serve`, guidellm, aiperf and inference-perf against the server.
 - Results for guidellm 0.8.1, aiperf 0.13.0 and inference-perf 0.7.0 in `results/tools-2026-11-14.json`.
 
-[Unreleased]: https://github.com/oscar030406/bench-truth/compare/v0.3.0...HEAD
+[Unreleased]: https://github.com/oscar030406/bench-truth/compare/v0.4.0...HEAD
+[0.4.0]: https://github.com/oscar030406/bench-truth/compare/v0.3.0...v0.4.0
 [0.3.0]: https://github.com/oscar030406/bench-truth/compare/v0.2.0...v0.3.0
 [0.2.0]: https://github.com/oscar030406/bench-truth/compare/v0.1.0...v0.2.0
 [0.1.0]: https://github.com/oscar030406/bench-truth/releases/tag/v0.1.0

@@ -11,7 +11,8 @@
   "recorded_send_to_wire_ms": "from `arrived + sent[i]` to the first packet with chunk i",
   "clock_offset_drift_ms": "change of time.time() - time.monotonic() over the run; runs with a step were repeated",
   "p99_ms": "statistics.quantiles(n=100, method='inclusive')[98]",
-  "server_ttft_mean_ms": "mean time from handler start to the first chunk, from the run's /truth records (added 2026-11-15)"
+  "server_ttft_mean_ms": "mean time from handler start to the first chunk, from the run's /truth records (added 2026-11-15)",
+  "reference_before_handler_ms": "mean wait before the server handler that bench_truth.reference printed for the run"
  },
  "runs": [
   {
@@ -34,7 +35,11 @@
     "p99_ms": 0.07581710815429688,
     "max_ms": 0.32782554626464844
    },
-   "server_ttft_mean_ms": 51.02858147692233
+   "server_ttft_mean_ms": 51.02858147692233,
+   "reference_before_handler_ms": {
+    "first_burst": 1.19,
+    "later": 0.08
+   }
   },
   {
    "server": "rust 0.4.0",
@@ -56,7 +61,11 @@
     "p99_ms": 0.056743621826171875,
     "max_ms": 0.16999244689941406
    },
-   "server_ttft_mean_ms": 51.070387229571914
+   "server_ttft_mean_ms": 51.070387229571914,
+   "reference_before_handler_ms": {
+    "first_burst": 4.42,
+    "later": 0.09
+   }
   },
   {
    "server": "rust 0.4.0",
@@ -78,7 +87,11 @@
     "p99_ms": 0.03552436828613281,
     "max_ms": 0.3895759582519531
    },
-   "server_ttft_mean_ms": 51.064607999999964
+   "server_ttft_mean_ms": 51.064607999999964,
+   "reference_before_handler_ms": {
+    "first_burst": 20.12,
+    "later": 0.08
+   }
   },
   {
    "server": "rust 0.4.0",
@@ -100,7 +113,11 @@
     "p99_ms": 0.027894973754882812,
     "max_ms": 4.261970520019531
    },
-   "server_ttft_mean_ms": 51.111005708323134
+   "server_ttft_mean_ms": 51.111005708323134,
+   "reference_before_handler_ms": {
+    "first_burst": 459.34,
+    "later": 0.11
+   }
   }
  ]
 }

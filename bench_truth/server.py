@@ -114,7 +114,7 @@ class Server:
             raise web.HTTPBadRequest(text="the body is not a JSON object")
         n = output_tokens(body, self.scenario.tokens)
         if body.get("stream") is not True:
-            return await self._whole(kind, arrived, rid, n)
+            return await self._whole(request, kind, arrived, rid, n)
         resp = web.StreamResponse(headers={"Content-Type": "text/event-stream"})
         await resp.prepare(request)
         sent = []
@@ -136,7 +136,9 @@ class Server:
         self._record({"id": rid, "arrived": arrived, "tokens": n, "sent": sent})
         return resp
 
-    async def _whole(self, kind: str, arrived: float, rid: str | None, n: int) -> web.Response:
+    async def _whole(
+        self, request: web.Request, kind: str, arrived: float, rid: str | None, n: int
+    ) -> web.Response:
         """Without stream: true, the whole response leaves when its last token is due."""
         await self._wait(arrived, n - 1)
         text = "".join(self._text(i) for i in range(n))
@@ -154,6 +156,8 @@ class Server:
             "usage": _usage(n, self.scenario),
         }
         sent = [time.perf_counter() - arrived]
+        if request.transport is None or request.transport.is_closing():
+            return web.Response(status=499)  # the client went away; no record, as in Rust
         self._record({"id": rid, "arrived": arrived, "tokens": n, "sent": sent})
         return web.json_response(out)
 

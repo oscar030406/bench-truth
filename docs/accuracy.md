@@ -16,7 +16,7 @@ The table shows the Rust server 0.4.0 on 4 cores with `bench_truth.reference`, 6
 
 The last column is the server's own time from handler start to the first chunk. It stays at 51 ms up to concurrency 1024, so the server is not what slows a client down.
 
-A few requests of the first burst wait longer for the handler. The longest wait was 2.3 ms at concurrency 256 and 22 ms at concurrency 1024. For the first burst at concurrency 256, `bench_truth.reference` measured 20.1 ms before the handler on average. So the wait inside the server is a small part of the first burst's cost.
+A few requests of the first burst wait longer for the handler. The longest wait was 2.3 ms at concurrency 256 and 22 ms at concurrency 1024. For the first burst at concurrency 256, `bench_truth.reference` measured 20.1 ms before the handler on average (`reference_before_handler_ms` in the same file). So the wait inside the server is a small part of the first burst's cost.
 
 Version 0.2.0 gave a median of 0.002 ms from record to packet ([`results/wire-2026-11-14.json`](../results/wire-2026-11-14.json)). From version 0.3.0, the server reads the clock before it hands a chunk over, not after. The record is therefore a few microseconds earlier.
 
