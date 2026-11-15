@@ -11,7 +11,8 @@
   "recorded_send_to_wire_ms": "from `arrived + sent[i]` to the first packet with chunk i",
   "clock_offset_drift_ms": "change of time.time() - time.monotonic() over the run; runs with a step were repeated",
   "python": "the Python server reads the clock after the write returns, so its send delays are slightly negative",
-  "p99_ms": "statistics.quantiles(n=100, method='inclusive')[98]"
+  "p99_ms": "statistics.quantiles(n=100, method='inclusive')[98]",
+  "server_ttft_mean_ms": "mean time from handler start to the first chunk, from the run's /truth records (added 2026-11-15)"
  },
  "runs": [
   {
@@ -33,7 +34,8 @@
     "median_ms": 0.0021457672119140625,
     "p99_ms": 0.03911256790161133,
     "max_ms": 0.41174888610839844
-   }
+   },
+   "server_ttft_mean_ms": 51.00413215626354
   },
   {
    "server": "rust 0.2.0, TCP_NODELAY",
@@ -54,7 +56,8 @@
     "median_ms": 0.002384185791015625,
     "p99_ms": 0.028133392333984375,
     "max_ms": 0.2846717834472656
-   }
+   },
+   "server_ttft_mean_ms": 51.291120999998
   },
   {
    "server": "rust 0.2.0, TCP_NODELAY",
@@ -75,7 +78,8 @@
     "median_ms": 0.0021457672119140625,
     "p99_ms": 0.017642974853515625,
     "max_ms": 0.27489662170410156
-   }
+   },
+   "server_ttft_mean_ms": 51.17088258593883
   },
   {
    "server": "rust 0.2.0, TCP_NODELAY",
@@ -96,7 +100,8 @@
     "median_ms": 0.002384185791015625,
     "p99_ms": 0.015020370483398438,
     "max_ms": 0.3147125244140625
-   }
+   },
+   "server_ttft_mean_ms": 51.09319238452212
   },
   {
    "server": "rust, no TCP_NODELAY (as in 0.1.0)",
@@ -117,7 +122,8 @@
     "median_ms": 0.0026226043701171875,
     "p99_ms": 0.017881393432617188,
     "max_ms": 0.15354156494140625
-   }
+   },
+   "server_ttft_mean_ms": 51.15327207617104
   },
   {
    "server": "rust, no TCP_NODELAY (as in 0.1.0)",
@@ -138,7 +144,8 @@
     "median_ms": 5.625128746032715,
     "p99_ms": 23.845808506011963,
     "max_ms": 44.164180755615234
-   }
+   },
+   "server_ttft_mean_ms": 51.07195494897504
   },
   {
    "server": "python",
@@ -159,7 +166,8 @@
     "median_ms": -0.002384185791015625,
     "p99_ms": -0.001430511474609375,
     "max_ms": -0.00095367431640625
-   }
+   },
+   "server_ttft_mean_ms": 50.67433187499915
   },
   {
    "server": "python",
@@ -180,7 +188,8 @@
     "median_ms": -0.0019073486328125,
     "p99_ms": -0.00095367431640625,
     "max_ms": -0.0007152557373046875
-   }
+   },
+   "server_ttft_mean_ms": 50.61629647265592
   }
  ]
 }
