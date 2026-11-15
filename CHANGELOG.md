@@ -22,6 +22,7 @@ This file lists the changes in each release. The format follows [Keep a Changelo
 - On macOS, the Rust server reads `CLOCK_UPTIME_RAW`, the clock of `time.perf_counter()`. It read `CLOCK_MONOTONIC`, which also counts the time the Mac was asleep, so `arrived` did not match the client's clock.
 - On Windows, both servers ask for 1 ms timers. With the default 15.6 ms timers, chunks left up to 16 ms late.
 - The Python server does not send chunks early. Before Python 3.13, asyncio on Windows woke up to 15 ms before the planned time.
+- The Python server records the time of each chunk just before it writes the chunk, like the Rust server. It recorded the time after the write. Under CPU load, a client on the same machine could then read a chunk before its record.
 
 ## [0.2.0] - 2026-11-14
 

@@ -1,7 +1,7 @@
 """An OpenAI-compatible streaming server whose timings are known.
 
-Each scenario fixes when every chunk is sent. The server records the time it
-actually wrote each chunk, so a benchmark client's TTFT and inter-token
+Each scenario fixes when every chunk is sent. The server records the time just
+before it writes each chunk, so a benchmark client's TTFT and inter-token
 latency can be compared with the truth at /truth.
 
     python -m bench_truth.server --scenario uniform --port 8100
@@ -73,8 +73,11 @@ class Server:
             # 15.6 ms and can wake up to a tick early. Then sleep for the rest.
             while (wait := arrived + s.ttft + i * s.itl - time.perf_counter()) > 0:
                 await asyncio.sleep(wait)
-            await resp.write(_chunk(kind, f" {self.word}" if self.word else f" t{i}"))
+            # Record the time before the write, so no client can read a chunk before
+            # its record. The write wakes a client on the same machine, and under CPU
+            # load the client ran first.
             sent.append(time.perf_counter() - arrived)
+            await resp.write(_chunk(kind, f" {self.word}" if self.word else f" t{i}"))
         # Like the OpenAI API, send the usage chunk only when the client asks for it.
         if (body.get("stream_options") or {}).get("include_usage"):
             usage = {"prompt_tokens": 8, "completion_tokens": n + int(s.usage_counts_eos)}
