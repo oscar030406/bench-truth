@@ -123,9 +123,11 @@ def main(tool: str, dist: str, build: Build, parse: Parse) -> None:
     p.add_argument("--summary", type=Path, required=True, help="JSON summary to write")
     a = p.parse_args()
     run = Run(a.exe, a.url, a.concurrency, a.requests or 4 * a.concurrency, a.tokenizer, a.out_dir)
+    if run.requests <= run.concurrency:
+        p.error(f"--requests {run.requests} leaves no request after the first burst")
     run.out_dir.mkdir(parents=True, exist_ok=True)
     cmd = build(run)
-    started = time.monotonic()  # the server's `arrived` is on the same clock
+    started = time.perf_counter()  # the server's `arrived` is on the same clock
     with open(run.out_dir / "run.log", "w") as log:
         subprocess.run(cmd, stdout=log, stderr=subprocess.STDOUT, check=True, env=os.environ)
     records = [r for r in fetch_truth(run.url) if r["arrived"] >= started]
