@@ -36,6 +36,14 @@ def measured(records: list[dict], last: int | None = None) -> list[dict]:
     return records[-last:] if last else records
 
 
+def _rounded(out: dict) -> dict:
+    """The summary with times to the microsecond, for reading."""
+    return {
+        k: _rounded(v) if isinstance(v, dict) else round(v, 3) if isinstance(v, float) else v
+        for k, v in out.items()
+    }
+
+
 def main() -> None:
     p = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     p.add_argument("--url", default="http://127.0.0.1:8100")
@@ -62,7 +70,7 @@ def main() -> None:
             "first_burst": summarise(records[: args.concurrency]),
             "after_first_burst": summarise(records[args.concurrency :]),
         }
-    print(json.dumps(out))
+    print(json.dumps(_rounded(out), indent=2))
     if args.clear:
         urllib.request.urlopen(urllib.request.Request(f"{args.url}/truth", method="DELETE")).close()
 

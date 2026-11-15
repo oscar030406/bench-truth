@@ -15,6 +15,7 @@ This file lists the changes in each release. The format follows [Keep a Changelo
 ### Changed
 
 - The Rust server reads its options with clap, so it has `--help` and `--version`.
+- `bench-truth truth` prints indented JSON, with times rounded to the microsecond.
 
 ### Fixed
 
