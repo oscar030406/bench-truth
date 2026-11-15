@@ -10,11 +10,14 @@
   "reported_ttft_later_ms": "mean of the result file's ttfts after the first max_concurrency requests, in the order of the file",
   "true_ttft_ms": "server time from handler start to the first chunk, mean over all requests",
   "true_ttft_later_ms": "the same, over the records after the first max_concurrency records by arrival",
+  "headers_wait_later_ms": "aiohttp trace of the two main runs: mean time from request start to headers sent, without the 5 requests that vllm bench serve sends before the run and the first max_concurrency of the run",
   "sha256": {
    "ab-trust-result.json": "66ae24489b9b21733714de10fc78184c224493417d92d5da18b5517c7d9bc7b8",
    "ab-trust-truth.json": "7312d33ca6d477e56de61a42da3bf855147faaa56ecc48a3279a782334afe945",
+   "ab-trust.json": "3c4d003a8535910175e419c870db03f51f4ff964f46b78f10c0e768b68bc433f",
    "ab-no_trust-result.json": "30f9b98dbf5091912acec58a268a4ed611a13e77f74ff4b7b09bc9c144f8f70e",
    "ab-no_trust-truth.json": "357d4a67777279ae5319209cabb1546569a888af9fd5050003e66a8aafc3592b",
+   "ab-no_trust.json": "6bc9bacda6e5f29d19fe2f92e91e8d7bf53b4ce49dd30ed6d80692e16351f9f4",
    "fix-result.json": "6b147d5e0c370f2b94f8e704dc1f10344d759f114b95d9b86a0390b4ab83b319",
    "fix-truth.json": "91e5d5e755cc8bbb758c8e443761f6a22262048607facd759c4dece4dd2ad483"
   }
@@ -30,7 +33,8 @@
    "reported_mean_ttft_ms": 87.35314693652343,
    "true_ttft_later_ms": 51.01807344401044,
    "reported_ttft_later_ms": 73.70927078385418,
-   "reported_mean_itl_ms": 20.010884540291823
+   "reported_mean_itl_ms": 20.010884540291823,
+   "headers_wait_later_ms": 20.429023440104157
   },
   {
    "version": "main 191e5d5 with BT_NO_TRUST_ENV=1",
@@ -42,7 +46,8 @@
    "reported_mean_ttft_ms": 60.209540340820276,
    "true_ttft_later_ms": 51.051091230468785,
    "reported_ttft_later_ms": 51.43895027213536,
-   "reported_mean_itl_ms": 20.0125053244447
+   "reported_mean_itl_ms": 20.0125053244447,
+   "headers_wait_later_ms": 0.02200754296867909
   },
   {
    "version": "vllm-project/vllm#67624",
