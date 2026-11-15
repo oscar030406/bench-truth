@@ -1,0 +1,60 @@
+{
+ "date": "2026-11-14",
+ "tool": "vllm bench serve, vLLM main 191e5d5, with and without vllm-project/vllm#67624",
+ "server": "server-rs 0.2.0: --scenario fast --itl 0.02; cores 0-3",
+ "client": "cores 4-11; --backend openai --dataset-name random --random-input-len 16 --random-output-len 256 --num-prompts 1024 --max-concurrency 256 --save-detailed",
+ "machine": "WSL2 Ubuntu 24.04 on Windows 11; client and server on one machine; aiohttp 3.14.5",
+ "notes": {
+  "trust_env": "the two main runs used scripts/trace_vllm_bench.py; BT_NO_TRUST_ENV=1 opens the session with trust_env=False",
+  "reported_mean_ttft_ms": "mean_ttft_ms in the result file, all requests",
+  "reported_ttft_later_ms": "mean of the result file's ttfts after the first max_concurrency requests, in the order of the file",
+  "true_ttft_ms": "server time from handler start to the first chunk, mean over all requests",
+  "true_ttft_later_ms": "the same, over the records after the first max_concurrency records by arrival",
+  "sha256": {
+   "ab-trust-result.json": "66ae24489b9b21733714de10fc78184c224493417d92d5da18b5517c7d9bc7b8",
+   "ab-trust-truth.json": "7312d33ca6d477e56de61a42da3bf855147faaa56ecc48a3279a782334afe945",
+   "ab-no_trust-result.json": "30f9b98dbf5091912acec58a268a4ed611a13e77f74ff4b7b09bc9c144f8f70e",
+   "ab-no_trust-truth.json": "357d4a67777279ae5319209cabb1546569a888af9fd5050003e66a8aafc3592b",
+   "fix-result.json": "6b147d5e0c370f2b94f8e704dc1f10344d759f114b95d9b86a0390b4ab83b319",
+   "fix-truth.json": "91e5d5e755cc8bbb758c8e443761f6a22262048607facd759c4dece4dd2ad483"
+  }
+ },
+ "runs": [
+  {
+   "version": "main 191e5d5",
+   "trust_env": true,
+   "max_concurrency": 256,
+   "requests": 1024,
+   "server_records": 1024,
+   "true_ttft_ms": 51.04036940625002,
+   "reported_mean_ttft_ms": 87.35314693652343,
+   "true_ttft_later_ms": 51.01807344401044,
+   "reported_ttft_later_ms": 73.70927078385418,
+   "reported_mean_itl_ms": 20.010884540291823
+  },
+  {
+   "version": "main 191e5d5 with BT_NO_TRUST_ENV=1",
+   "trust_env": false,
+   "max_concurrency": 256,
+   "requests": 1024,
+   "server_records": 1024,
+   "true_ttft_ms": 51.0706249912109,
+   "reported_mean_ttft_ms": 60.209540340820276,
+   "true_ttft_later_ms": 51.051091230468785,
+   "reported_ttft_later_ms": 51.43895027213536,
+   "reported_mean_itl_ms": 20.0125053244447
+  },
+  {
+   "version": "vllm-project/vllm#67624",
+   "trust_env": false,
+   "max_concurrency": 256,
+   "requests": 1024,
+   "server_records": 1024,
+   "true_ttft_ms": 51.12083236914017,
+   "reported_mean_ttft_ms": 62.75359640624967,
+   "true_ttft_later_ms": 51.09813972005139,
+   "reported_ttft_later_ms": 51.513434440104106,
+   "reported_mean_itl_ms": 20.00871491454504
+  }
+ ]
+}
