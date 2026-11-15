@@ -154,11 +154,12 @@ async fn stream(State(state): State<AppState>, uri: Uri, headers: HeaderMap, Jso
         let mut sent = Vec::with_capacity(n);
         for i in 0..n {
             sleep_until(arrived_instant + Duration::from_secs_f64(s.ttft + i as f64 * s.itl)).await;
+            // Record the time before the hand-off, so no client can read a chunk before its record.
+            sent.push(monotonic() - arrived);
             let text = state.word.as_deref().map_or_else(|| format!(" t{i}"), |w| format!(" {w}"));
             if tx.send(Ok(chunk(chat, Some(&text), None))).await.is_err() {
                 return; // the client went away; no record
             }
-            sent.push(monotonic() - arrived);
         }
         if include_usage {
             let completion = n + usize::from(s.usage_counts_eos);
