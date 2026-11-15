@@ -10,7 +10,7 @@ A streaming server with known timings, for checking the numbers that LLM serving
 <p align="center">
   <picture>
     <source media="(prefers-color-scheme: dark)" srcset="docs/assets/ttft-c256-dark.svg">
-    <img src="docs/assets/ttft-c256-light.svg" width="860" alt="Mean TTFT that eight benchmark clients report at concurrency 256. Before the fixes, five clients report 81 to 140 ms, against a true TTFT of 51 ms in every run.">
+    <img src="docs/assets/ttft-c256-light.svg" width="860" alt="Mean TTFT that eight benchmark clients report at concurrency 256. Before the fixes, the means of five clients are 81 to 140 ms, against a true TTFT of 51 ms in every run.">
   </picture>
 </p>
 
@@ -18,9 +18,9 @@ Benchmark clients such as `vllm bench serve`, guidellm and aiperf report time to
 
 ## What it found
 
-At concurrency 256, five clients reported a mean TTFT between 81 and 140 ms, against a true TTFT of 51 ms in every run. Two causes explain most of the error. Both add their delay after the client starts its TTFT clock.
+At concurrency 256, five clients reported a mean TTFT between 72 and 144 ms, against a true TTFT of 51 ms in every run. Two causes explain most of the error. Both add their delay after the client starts its TTFT clock.
 
-- With `trust_env=True`, aiohttp 3.14.5 runs two lookups in a thread pool for every request. At concurrency 256, they delay each request by 26 ms ([aio-libs/aiohttp#14378](https://github.com/aio-libs/aiohttp/issues/14378)).
+- With `trust_env=True`, aiohttp 3.14.5 runs two lookups in a thread pool for every request. In `vllm bench serve` at concurrency 256, each request waited 20.4 ms for them before its headers went out. The report is [aio-libs/aiohttp#14378](https://github.com/aio-libs/aiohttp/issues/14378), and [aio-libs/aiohttp#14380](https://github.com/aio-libs/aiohttp/pull/14380) proposes a fix in aiohttp.
 - A client that opens an aiohttp session for every request also opens a connection for every request.
 
 | Client | Cause | Before the fix | With the fix | Fix |
@@ -49,7 +49,7 @@ Install the `bench-truth` command, with the Python server and the tools that rea
 pip install git+https://github.com/oscar030406/bench-truth
 ```
 
-The Python server is for low concurrency. For high concurrency, use the Rust server: its own time to the first token stays at 51 ms up to concurrency 1024. Each release has a server binary for each platform:
+The Python server is for low concurrency. For high concurrency, use the Rust server: its own time to the first token stays at 51 ms up to concurrency 1024 ([docs/accuracy.md](docs/accuracy.md)). Each release has a server binary for each platform:
 
 | | x86-64 | arm64 |
 |---|---|---|
@@ -168,7 +168,7 @@ sequenceDiagram
 ```
 
 - A record holds the `x-bt-id` header if the client sent one, the arrival time `arrived`, the token count, and the send time of each chunk after `arrived`.
-- The server records each chunk just before it writes the chunk. So no client can read a chunk before its record.
+- Both servers record each chunk just before they hand it over for writing. So no client can read a chunk before its record.
 - `arrived` is on the clock of Python's `time.perf_counter()`: `CLOCK_MONOTONIC` on Linux, `mach_absolute_time` on macOS and `QueryPerformanceCounter` on Windows. So a client on the same machine can compare its own timestamps with the records. `bench-truth reference` uses this to split its TTFT.
 - A packet capture checks the records of the Rust server. At every concurrency from 16 to 1024, the median chunk left 0.002 ms after its record ([docs/accuracy.md](docs/accuracy.md)).
 
@@ -180,8 +180,7 @@ Run `bash check.sh`. It runs ruff, cargo fmt, clippy, the Rust build, the chart 
 
 - The client and the server run on one machine. Network delay between machines is not part of the measurement.
 - The results in [docs/findings.md](docs/findings.md) come from a WSL2 guest. Its monotonic clock ran about 8% slower than the host's (27.6 s against 30.1 s). The server and the clients read the same guest clock, so the relative errors hold. The absolute times are in guest seconds.
-- The Rust server's timer has millisecond resolution. Each chunk can leave up to about 1 ms late, and `/truth` records when it actually left.
-- Windows wakes timers less exactly. On a busy Windows 11 machine, chunks left a median of 1 to 6 ms late. In WSL on the same machine, they left 1.2 ms late. `/truth` records the actual times on every platform.
+- Each chunk leaves a little after its planned time, and `/truth` records when it left. On GitHub's Linux and Windows runners, the median chunk left 0.6 to 1.6 ms late. On the macOS runners, it left 1.2 to 2.3 ms late on Intel and 4.2 to 6.7 ms late on Apple silicon. On every runner, 99% of chunks left within 14 ms of the plan. The numbers are in [`results/schedule-2026-11-15.json`](results/schedule-2026-11-15.json).
 
 ## License
 

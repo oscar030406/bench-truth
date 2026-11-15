@@ -4,15 +4,9 @@ Each section compares one benchmark client with the bench-truth Rust server. The
 
 ## aiohttp `trust_env=True`: two lookups for every request
 
-With `trust_env=True`, aiohttp 3.14.5 runs two lookups in the default thread pool for every request ([`client.py` lines 777-817](https://github.com/aio-libs/aiohttp/blob/v3.14.5/aiohttp/client.py#L777-L817)). The `run_in_executor(None, self._get_netrc_auth, ...)` call looks up `~/.netrc`, and the `asyncio.to_thread(get_env_proxy_for_url, url)` call looks up the proxy. aiohttp master skips the netrc lookup when the request already has an `Authorization` header, for example when the user sets `OPENAI_API_KEY`. The runs on this page set no API key. Each request then waits for worker threads and for the event loop before its headers go out. The wait grows with concurrency.
+With `trust_env=True`, aiohttp 3.14.5 runs two lookups in the default thread pool for every request ([`client.py` lines 777-817](https://github.com/aio-libs/aiohttp/blob/v3.14.5/aiohttp/client.py#L777-L817)). The `run_in_executor(None, self._get_netrc_auth, ...)` call looks up `~/.netrc`, and the `asyncio.to_thread(get_env_proxy_for_url, url)` call looks up the proxy. aiohttp master skips the netrc lookup when the request already has an `Authorization` header, for example when the user sets `OPENAI_API_KEY`. The runs on this page set no API key. Each request then waits for worker threads and for the event loop before its headers go out.
 
-Time from the client sending a request to the server's handler starting, with plain aiohttp 3.14.5 (`bench_truth.reference`), requests after the first burst, 20 ms between tokens:
-
-| Concurrency | `trust_env=False` | `trust_env=True` |
-|---|---|---|
-| 16 | 0.08 ms | 3.12 ms |
-| 64 | 0.07 ms | 7.32 ms |
-| 256 | 0.07 ms | 25.89 ms |
+An aiohttp trace in `vllm bench serve` measured this wait at concurrency 256. After the first burst, a request waited 20.43 ms on average from its start to its headers going out. With `trust_env=False`, it waited 0.02 ms. [`scripts/trace_vllm_bench.py`](../scripts/trace_vllm_bench.py) ran the trace, and the numbers are in [`results/vllm-2026-11-14.json`](../results/vllm-2026-11-14.json).
 
 The aiohttp report is [aio-libs/aiohttp#14378](https://github.com/aio-libs/aiohttp/issues/14378). [aio-libs/aiohttp#14380](https://github.com/aio-libs/aiohttp/pull/14380) proposes to read the netrc file once per session and to run the proxy lookup on the event loop. The clients in the next four sections open their sessions with `trust_env=True` for proxy support. Their fixes keep it only when a proxy or a netrc entry applies to the target.
 
@@ -62,7 +56,7 @@ InferenceX's `inferencex-e2e/infx/bench_serving` (`3370376`) opens an aiohttp se
 | 64 | 51.0 to 51.6 ms | 64.8, 63.5 ms | 56.5, 56.7 ms | 51.5, 51.4 ms |
 | 256 | 51.1 to 51.2 ms | 96.1, 102.0 ms | 72.9, 70.5 ms | 51.4, 51.4 ms |
 
-The last column shows what the session for every request costs. A shared session reuses keep-alive connections. #5088 does not change the sessions and leaves that choice to the maintainers. Mean ITL is 20.00 to 20.02 ms in every run. The raw numbers are in [`results/inferencex-2026-11-15.json`](../results/inferencex-2026-11-15.json).
+The last column shows what the session for every request costs. Its runs come from an earlier set, with one shared session and `trust_env` set by a proxy check only. A shared session reuses keep-alive connections. #5088 does not change the sessions and leaves that choice to the maintainers. Mean ITL is 20.00 to 20.02 ms in every run. The raw numbers are in [`results/inferencex-2026-11-15.json`](../results/inferencex-2026-11-15.json).
 
 ## SGLang `bench_serving`: a session for every request
 
