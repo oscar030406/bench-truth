@@ -5,7 +5,7 @@ from __future__ import annotations
 import pytest
 
 from bench_truth.compare import split_ttft
-from bench_truth.tools import Request, late_requests
+from bench_truth.tools import Reported, Request, compare, late_requests
 from bench_truth.truth import measured, summarise
 
 
@@ -59,3 +59,12 @@ def test_measured_keeps_the_last_records_by_arrival():
     records = [_rec(5.0, [0.3]), _rec(0.0, [0.9]), _rec(4.0, [0.2]), _rec(3.0, [0.1])]
     assert [r["arrived"] for r in measured(records, last=2)] == [4.0, 5.0]
     assert [r["arrived"] for r in measured(records)] == [0.0, 3.0, 4.0, 5.0]
+
+
+def test_compare_needs_requests_after_the_first_burst():
+    # --requests 2 --concurrency 2: every request is in the first burst, so the
+    # numbers "after the first burst" do not exist.
+    reported = Reported([Request(0.0, 0.05, 0.1), Request(0.0, 0.05, 0.1)], 50.0, 20.0)
+    records = [_rec(0.0, [0.05, 0.07]), _rec(0.1, [0.05, 0.07])]
+    with pytest.raises(KeyError, match="later"):
+        compare(reported, records, concurrency=2)

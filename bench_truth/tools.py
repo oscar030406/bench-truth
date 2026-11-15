@@ -95,7 +95,7 @@ def compare(reported: Reported, records: list[dict], concurrency: int) -> dict:
     ordered = sorted(reported.requests, key=lambda r: r.start)
     split = split_ttft([r.ttft for r in ordered], records, concurrency)
     truth = summarise(records)
-    later = split.get("later", split["first"])
+    later = split["later"]
     return {
         **late_requests(ordered, records),
         "reported_ttft_ms": reported.mean_ttft_ms,
