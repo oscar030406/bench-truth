@@ -23,14 +23,15 @@ At concurrency 256, five clients reported a mean TTFT between 81 and 140 ms, aga
 - With `trust_env=True`, aiohttp 3.14.5 runs two lookups in a thread pool for every request. At concurrency 256, they delay each request by 26 ms ([aio-libs/aiohttp#14378](https://github.com/aio-libs/aiohttp/issues/14378)).
 - A client that opens an aiohttp session for every request also opens a connection for every request.
 
-| Client | Cause | Mean TTFT, before → with the fix | Fix |
-|---|---|---|---|
-| evalscope `perf` 1.15.0 | `trust_env` | 144.1, 135.7 → 66.5, 67.6 ms | [modelscope/evalscope#2088](https://github.com/modelscope/evalscope/pull/2088) |
-| TensorRT-LLM `benchmark_serving` `178ec0b` | `trust_env`, a connection for every request | 114.5, 114.1 → 77.9, 75.6 ms | [NVIDIA/TensorRT-LLM#22283](https://github.com/NVIDIA/TensorRT-LLM/pull/22283) |
-| InferenceX `bench_serving` `3370376` | `trust_env`, a session for every request | 96.1, 102.0 → 72.9, 70.5 ms | [SemiAnalysisAI/InferenceX#5088](https://github.com/SemiAnalysisAI/InferenceX/pull/5088) |
-| `vllm bench serve` `191e5d5` | `trust_env` | 87.4 → 62.8 ms | [vllm-project/vllm#67624](https://github.com/vllm-project/vllm/pull/67624) |
-| SGLang `bench_serving` `89386ea` | a session for every request | 71.7, 74.3, 97.5 → 63.2, 62.9, 61.5 ms | [sgl-project/sglang#50505](https://github.com/sgl-project/sglang/pull/50505) |
-| aiperf 0.13.0, guidellm 0.8.1, inference-perf 0.7.0 | none | 54.6, 53.7 and 51.5 ms | no fix needed |
+| Client | Cause | Before the fix | With the fix | Fix |
+|---|---|---|---|---|
+| evalscope `perf` 1.15.0 | `trust_env` | 144.1, 135.7 ms | 66.5, 67.6 ms | [#2088](https://github.com/modelscope/evalscope/pull/2088) |
+| TensorRT-LLM `benchmark_serving` `178ec0b` | `trust_env`, `force_close` | 114.5, 114.1 ms | 77.9, 75.6 ms | [#22283](https://github.com/NVIDIA/TensorRT-LLM/pull/22283) |
+| InferenceX `bench_serving` `3370376` | `trust_env`, a session for every request | 96.1, 102.0 ms | 72.9, 70.5 ms | [#5088](https://github.com/SemiAnalysisAI/InferenceX/pull/5088) |
+| `vllm bench serve` `191e5d5` | `trust_env` | 87.4 ms | 62.8 ms | [#67624](https://github.com/vllm-project/vllm/pull/67624) |
+| SGLang `bench_serving` `89386ea` | a session for every request | 71.7, 74.3, 97.5 ms | 63.2, 62.9, 61.5 ms | [#50505](https://github.com/sgl-project/sglang/pull/50505) |
+
+aiperf 0.13.0, guidellm 0.8.1 and inference-perf 0.7.0 reported 54.6, 53.7 and 51.5 ms in the same test. They need no fix.
 
 Each number is the mean TTFT that the client printed for one run. The first burst of a run opens all its connections at once, and TensorRT-LLM and InferenceX open a connection for every request. The fixes keep both costs, so the numbers with the fix stay above the truth. The file [docs/findings.md](docs/findings.md) gives the numbers after the first burst and the cause in each client. It also covers LMDeploy, whose error is 1.4% to 1.6%. The raw numbers are in [`results/`](results).
 
