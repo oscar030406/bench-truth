@@ -82,6 +82,7 @@ def late_requests(ordered: list[Request], records: list[dict]) -> dict:
     late = [r.latency - s["sent"][-1] > LATE_S for r, s in zip(ordered, server, strict=True)]
     out: dict = {"late_requests": sum(late)}
     on_time = [(r, s) for r, s, x in zip(ordered, server, late, strict=True) if not x]
+    on_time = [(r, s) for r, s in on_time if len(s["sent"]) > 1]  # ITL needs two chunks
     if on_time and all(r.itl is not None for r, _ in on_time):
         rep = statistics.mean(r.itl for r, _ in on_time)
         true = statistics.mean(

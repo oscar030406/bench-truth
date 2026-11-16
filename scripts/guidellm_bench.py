@@ -3,7 +3,8 @@
     python scripts/guidellm_bench.py --exe <venv>/bin/guidellm --concurrency 64 \
         --out-dir out/guidellm-64 --summary out/guidellm-64.json
 
-The server has no /health route, so backend validation is off.
+Backend validation is off, as in the runs in results/. Before 0.4.0 the server had no
+/health route for it.
 """
 
 from __future__ import annotations

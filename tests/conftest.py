@@ -28,19 +28,29 @@ def _free_port() -> int:
 
 @pytest.fixture(params=["python", "rust"])
 def start_server(request):
-    """Return a function that starts the server with extra arguments and returns its URL."""
+    """Return a function that starts the server with extra arguments and returns its URL.
+
+    `start.command(*args)` gives the command line, and `start.stop()` stops the
+    last server and returns what it wrote to stderr.
+    """
     procs: list[subprocess.Popen] = []
+
+    def command(*args: str) -> list[str]:
+        if request.param == "python":
+            return [sys.executable, "-m", "bench_truth.server", *args]
+        exe = os.environ.get("BT_SERVER_BIN")
+        if not exe:
+            pytest.skip("BT_SERVER_BIN is not set to the Rust server binary")
+        # Windows cannot start a relative path with forward slashes, as check.sh passes.
+        return [str(Path(exe).resolve()), *args]
+
+    def stop() -> str:
+        procs[-1].terminate()
+        return procs[-1].communicate(timeout=10)[1].decode()
 
     def start(*args: str) -> str:
         port = _free_port()
-        if request.param == "python":
-            cmd = [sys.executable, "-m", "bench_truth.server", "--port", str(port), *args]
-        else:
-            exe = os.environ.get("BT_SERVER_BIN")
-            if not exe:
-                pytest.skip("BT_SERVER_BIN is not set to the Rust server binary")
-            # Windows cannot start a relative path with forward slashes, as check.sh passes.
-            cmd = [str(Path(exe).resolve()), "--port", str(port), *args]
+        cmd = command("--port", str(port), *args)
         procs.append(subprocess.Popen(cmd, stdout=subprocess.DEVNULL, stderr=subprocess.PIPE))
         url = f"http://127.0.0.1:{port}"
         deadline = time.monotonic() + 10
@@ -53,6 +63,8 @@ def start_server(request):
                     raise RuntimeError(procs[-1].stderr.read().decode()) from None
                 time.sleep(0.05)
 
+    start.command = command
+    start.stop = stop
     yield start
     for p in procs:
         p.terminate()

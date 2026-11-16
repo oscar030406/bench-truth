@@ -5,18 +5,20 @@ The comparisons in [findings.md](findings.md) are only as good as the server's r
 - From the last packet of a request to the start of the server's handler.
 - From the recorded send time of a chunk to the first packet that carries it.
 
-The table shows the Rust server 0.2.0 on 4 cores with `bench_truth.reference`, 64 tokens per response and 4 x concurrency requests. The raw numbers are in [`results/wire-2026-11-14.json`](../results/wire-2026-11-14.json).
+The table shows the Rust server 0.4.0 on 4 cores with `bench_truth.reference`, 64 tokens per response and 4 x concurrency requests. The raw numbers are in [`results/wire-2026-11-16.json`](../results/wire-2026-11-16.json). Every request matched its packets, and tcpdump dropped no packet.
 
 | Concurrency | Request to handler, median / p99 | Recorded send to packet, median / p99 / max | Server's mean TTFT |
 |---|---|---|---|
-| 16 | 0.026 / 0.105 ms | 0.002 / 0.039 / 0.412 ms | 51.00 ms |
-| 64 | 0.024 / 0.091 ms | 0.002 / 0.028 / 0.285 ms | 51.29 ms |
-| 256 | 0.023 / 11.031 ms | 0.002 / 0.018 / 0.275 ms | 51.17 ms |
-| 1024 | 0.023 / 0.208 ms | 0.002 / 0.015 / 0.315 ms | 51.09 ms |
+| 16 | 0.030 / 0.192 ms | 0.005 / 0.076 / 0.328 ms | 51.03 ms |
+| 64 | 0.033 / 0.116 ms | 0.005 / 0.057 / 0.170 ms | 51.07 ms |
+| 256 | 0.024 / 1.755 ms | 0.005 / 0.036 / 0.390 ms | 51.06 ms |
+| 1024 | 0.026 / 0.211 ms | 0.005 / 0.028 / 4.262 ms | 51.11 ms |
 
 The last column is the server's own time from handler start to the first chunk. It stays at 51 ms up to concurrency 1024, so the server is not what slows a client down.
 
-A few requests of the first burst wait longer for the handler. At concurrency 256, the longest wait was 14 ms. The TTFT split of `bench_truth.reference` counts that wait as time before the handler. It is a small part of the first burst's cost. In the same run, the first burst waited 0.64 ms in the server on average. Before the handler, the client measured 14.8 ms for the same requests.
+A few requests of the first burst wait longer for the handler. The longest wait was 2.3 ms at concurrency 256 and 22 ms at concurrency 1024. For the first burst at concurrency 256, `bench_truth.reference` measured 20.1 ms before the handler on average (`reference_before_handler_ms` in the same file). So the wait inside the server is a small part of the first burst's cost.
+
+Version 0.2.0 gave a median of 0.002 ms from record to packet ([`results/wire-2026-11-14.json`](../results/wire-2026-11-14.json)). From version 0.3.0, the server reads the clock before it hands a chunk over, not after. The record is therefore a few microseconds earlier.
 
 ## `TCP_NODELAY`
 
